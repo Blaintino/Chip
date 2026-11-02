@@ -16,8 +16,13 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
-- Auf dem Handy installiert (v6, 2026-11-02): Kalender werden angezeigt. Abos, Widget und Editor
-  dort noch nicht bestätigt. Cloud-Sessions haben weder Emulator noch Handy.
+- Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v21, 2026-11-02): Kalender, Woche/Tag/
+  Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
+  Kalenderfarben, Widget mit Knöpfen (auch „+ Quälgeist“ mit Quälgeist v49), ICS-Abo hinzufügen und
+  laden. Tägliche Abo-Aktualisierung im Hintergrund noch nicht beobachtet. Cloud-Sessions haben weder
+  Emulator noch Handy.
+- Arbeitsweise (Wunsch des Nutzers): Wünsche sammeln, auf dem Arbeitsbranch umsetzen (CI dort nur
+  Test-Build), Release (= Merge nach `main`) erst auf Ansage.
 
 ## Aufbau und Regeln
 
@@ -49,7 +54,7 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   zeigt den letzten Tag; Umrechnung in `CalendarRepository.event/save`. Tage von Vorkommen aus
   `Instances.START_DAY/END_DAY` (julianisch), nicht aus `BEGIN/END`.
 - Plus-Knöpfe (Wunsch des Nutzers): je Schnellauswahl-Kalender ein `ExtendedFloatingActionButton` in
-  Kalenderfarbe (`QuickAddCalendars`, 2 Plätze, IDs in SharedPreferences, beim ersten Start nach Namen
+  Kalenderfarbe (nebeneinander, Beschriftung „+ “ und die ersten drei Buchstaben des Kalendernamens) (`QuickAddCalendars`, 2 Plätze, IDs in SharedPreferences, beim ersten Start nach Namen
   „Langners“/„Arbeit“ vorbelegt, in den Einstellungen änderbar; leer = einfaches Plus). Neuer Termin per
   Plus: **heute** zur nächsten vollen Stunde (nicht der gewählte Tag); Tippen ins Raster: dort.
 - Lang drücken (Wunsch des Nutzers): Tag/Woche → Zeitwähler unter dem Daumen (Viertelstunden, Ziehen
@@ -71,8 +76,10 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   - Zeitzonen: IANA-Name, Mozilla-Präfix, Windows-Name (ICU), sonst `X-WR-TIMEZONE`, sonst Gerät.
   - WorkManager: täglich mit Netz (`Background.schedule`, auch bei jedem App-Start), beim Öffnen
     nachholen, wenn ein Abo über einen Tag alt ist.
-- **Widget „Heute“** (Glance): reines Schwarz als Hintergrund, feste helle Schrift (Wunsch des Nutzers),
-  scrollbare Liste mit Uhrzeit, Titel, Ort. Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
+- **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), reines Schwarz als Hintergrund, feste helle Schrift (Wunsch des Nutzers),
+  scrollbare Liste mit Uhrzeit, Titel, Ort; **nur laufende und kommende Termine** (Wunsch des Nutzers,
+  `WidgetFilter`, Tests `WidgetFilterTest`; ganztägige bleiben), Neuzeichnen zum nächsten Terminende
+  (`Background.scheduleWidgetRefreshAt`, WorkManager, kann im Doze-Modus etwas später kommen). Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
   (öffnen `MainActivity` mit `NewEventIntents`, eigene Daten-URI je Kalender gegen zusammengelegte
   PendingIntents) und „+ Quälgeist“ über das Sprungbrett `QuaelgeistActivity`: Aktion
   `de.quaelgeist.action.QUICK_ADD` (Quälgeist, dann Beta), sonst Quälgeist starten, sonst Hinweis;
