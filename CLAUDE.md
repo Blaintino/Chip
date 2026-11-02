@@ -27,7 +27,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Im Editor sind nur beschreibbare **und** eingeschaltete Kalender wählbar (Wunsch des Nutzers,
   `editorCalendars`); beim Bearbeiten bleibt der bisherige Kalender des Termins wählbar.
 - Ansichten (Wunsch des Nutzers): Start-Tab ist die **Woche** (`WeekScreen`, Stundenraster,
-  Überschneidungen über `DayLayout`, Tests `DayLayoutTest`). **Doppeltipp** auf den Tab
+  Überschneidungen über `DayLayout`, Tests `DayLayoutTest`). Beim Öffnen ist 8–18 Uhr
+  sichtbar (Wunsch des Nutzers): Stundenhöhe = verfügbare Höhe / 10, nicht fest codiert. **Doppeltipp** auf den Tab
   Woche/Monat wechselt zwischen Woche und Monat (`monthMode`). Tippen auf eine freie Stelle im
   Raster legt dort einen Termin an.
 - Bearbeiten nur für Einzeltermine in beschreibbaren Kalendern (`CAL_ACCESS_CONTRIBUTOR`+).

@@ -61,7 +61,10 @@ import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
-private val HOUR_HEIGHT = 48.dp
+/** Beim Öffnen sichtbarer Zeitraum (Wunsch des Nutzers): 8–18 Uhr füllt die Höhe des Rasters. */
+private const val VISIBLE_FROM = 8
+private const val VISIBLE_TO = 18
+private val MIN_HOUR_HEIGHT = 28.dp
 private val TIME_COLUMN = 36.dp
 private val WEEKDAY = DateTimeFormatter.ofPattern("EE", Locale.GERMAN)
 private const val MAX_ALL_DAY = 2
@@ -95,11 +98,6 @@ fun WeekScreen(
 
     val scroll = rememberScrollState()
     val density = LocalDensity.current
-    LaunchedEffect(Unit) {
-        // Beim Öffnen auf 7 Uhr bzw. eine Stunde vor jetzt scrollen.
-        val hour = if (today in days) LocalTime.now().hour - 1 else 7
-        scroll.scrollTo(with(density) { (HOUR_HEIGHT * hour.coerceIn(0, 16)).roundToPx() })
-    }
 
     Column(Modifier.fillMaxSize().padding(contentPadding)) {
         // Kopf: Woche wechseln, Tippen auf den Titel springt zu heute.
@@ -168,13 +166,20 @@ fun WeekScreen(
         // Stundenraster
         val lineColor = MaterialTheme.colorScheme.outlineVariant
         val nowColor = MaterialTheme.colorScheme.error
-        Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll)) {
-            Row(Modifier.fillMaxWidth().height(HOUR_HEIGHT * 24).padding(end = 4.dp)) {
+        // Stundenhöhe aus der verfügbaren Höhe: genau VISIBLE_FROM–VISIBLE_TO passt hinein,
+        // unabhängig von Bildschirmgröße und Schriftgröße. Beim Öffnen auf VISIBLE_FROM scrollen.
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        val hourHeight = maxOf(maxHeight / (VISIBLE_TO - VISIBLE_FROM), MIN_HOUR_HEIGHT)
+        LaunchedEffect(hourHeight) {
+            scroll.scrollTo(with(density) { (hourHeight * VISIBLE_FROM).roundToPx() })
+        }
+        Box(Modifier.fillMaxSize().verticalScroll(scroll)) {
+            Row(Modifier.fillMaxWidth().height(hourHeight * 24).padding(end = 4.dp)) {
                 Box(Modifier.width(TIME_COLUMN).fillMaxHeight()) {
                     for (h in 1 until 24) {
                         Text(
                             "%02d".format(h),
-                            modifier = Modifier.offset(y = HOUR_HEIGHT * h - 7.dp).fillMaxWidth().padding(end = 4.dp),
+                            modifier = Modifier.offset(y = hourHeight * h - 7.dp).fillMaxWidth().padding(end = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.End,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -196,15 +201,15 @@ fun WeekScreen(
                     BoxWithConstraints(
                         Modifier.weight(1f).fillMaxHeight()
                             .drawBehind {
-                                val hourPx = HOUR_HEIGHT.toPx()
+                                val hourPx = hourHeight.toPx()
                                 for (h in 1 until 24) {
                                     drawLine(lineColor, Offset(0f, hourPx * h), Offset(size.width, hourPx * h), strokeWidth = 1f)
                                 }
                                 drawLine(lineColor, Offset(0f, 0f), Offset(0f, size.height), strokeWidth = 1f)
                             }
-                            .pointerInput(d) {
+                            .pointerInput(d, hourHeight) {
                                 detectTapGestures { pos ->
-                                    val hour = (pos.y / HOUR_HEIGHT.toPx()).toInt().coerceIn(0, 23)
+                                    val hour = (pos.y / hourHeight.toPx()).toInt().coerceIn(0, 23)
                                     onCreateAt(d.atTime(hour, 0))
                                 }
                             },
@@ -216,9 +221,9 @@ fun WeekScreen(
                             EventChip(
                                 ev,
                                 Modifier
-                                    .offset(x = w * slot.column, y = HOUR_HEIGHT * (slot.startMin / 60f))
+                                    .offset(x = w * slot.column, y = hourHeight * (slot.startMin / 60f))
                                     .width(w)
-                                    .height(HOUR_HEIGHT * ((slot.endMin - slot.startMin) / 60f))
+                                    .height(hourHeight * ((slot.endMin - slot.startMin) / 60f))
                                     .padding(1.dp),
                                 onClick = { onEventClick(ev) },
                                 showTime = slot.endMin - slot.startMin >= 45,
@@ -227,13 +232,14 @@ fun WeekScreen(
                         if (d == today) {
                             val nowMin = LocalTime.now().let { it.hour * 60 + it.minute }
                             Box(
-                                Modifier.offset(y = HOUR_HEIGHT * (nowMin / 60f) - 1.dp).fillMaxWidth().height(2.dp)
+                                Modifier.offset(y = hourHeight * (nowMin / 60f) - 1.dp).fillMaxWidth().height(2.dp)
                                     .background(nowColor),
                             )
                         }
                     }
                 }
             }
+        }
         }
     }
 }

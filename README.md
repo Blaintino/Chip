@@ -10,7 +10,8 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   du im Google Kalender ein, Chip zeigt und bearbeitet nur, was das Konto synchronisiert.
 - **Termine**: Liste der nächsten 90 Tage, nach Tagen gruppiert.
 - **Woche** (Startansicht): Mo–So mit Stundenraster, ganztägige Termine oben, Überschneidungen
-  nebeneinander, rote Linie für „jetzt“. Tippen auf eine freie Stelle legt dort einen Termin an.
+  nebeneinander, rote Linie für „jetzt“. Beim Öffnen füllt 8–18 Uhr die Höhe (Stundenhöhe passt
+  sich dem Bildschirm an), davor/danach scrollen. Tippen auf eine freie Stelle legt dort einen Termin an.
   **Doppeltipp auf den Tab „Woche“** wechselt zur **Monatsansicht** (Raster mit Farbpunkten, darunter
   die Termine des gewählten Tages) und zurück.
 - **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
