@@ -21,6 +21,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -47,6 +49,7 @@ import androidx.compose.foundation.border
 import de.blaintino.chip.data.CalendarInfo
 import de.blaintino.chip.data.CalendarRepository
 import de.blaintino.chip.data.Formats
+import de.blaintino.chip.data.QuickAddCalendars
 import de.blaintino.chip.data.Subscription
 import de.blaintino.chip.data.SubscriptionStore
 import de.blaintino.chip.sync.SubscriptionSync
@@ -63,6 +66,8 @@ fun CalendarsScreen(
     version: Int,
     hidden: Set<Long>,
     onHiddenChange: (Set<Long>) -> Unit,
+    quickIds: List<Long?>,
+    onQuickIdsChange: (List<Long?>) -> Unit,
     prefillUrl: String?,
     onPrefillHandled: () -> Unit,
     contentPadding: PaddingValues,
@@ -157,6 +162,31 @@ fun CalendarsScreen(
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(busy ?: message.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        item { SectionLabel("Plus-Knöpfe (Schnellauswahl)") }
+        item {
+            val writable = calendars.filter { it.writable }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Je Knopf ein Kalender; der Knopf übernimmt dessen Farbe. Ohne Auswahl gibt es ein einfaches Plus.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                repeat(QuickAddCalendars.SLOTS) { slot ->
+                    val current = quickIds.getOrNull(slot)
+                    QuickSlotPicker(
+                        label = "Knopf ${slot + 1}",
+                        selected = writable.firstOrNull { it.id == current },
+                        options = writable,
+                        onPick = { id ->
+                            val list = MutableList(QuickAddCalendars.SLOTS) { quickIds.getOrNull(it) }
+                            list[slot] = id
+                            onQuickIdsChange(list)
+                        },
+                    )
                 }
             }
         }
@@ -348,6 +378,36 @@ fun ColorPicker(selected: Int, onPick: (Int) -> Unit) {
                                 else Modifier,
                             )
                             .clickable { onPick(c) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickSlotPicker(
+    label: String,
+    selected: CalendarInfo?,
+    options: List<CalendarInfo>,
+    onPick: (Long?) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.width(72.dp), style = MaterialTheme.typography.bodyMedium)
+        Box(Modifier.weight(1f)) {
+            OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+                selected?.let { ColorDot(it.color, size = 12) }
+                Spacer(Modifier.width(8.dp))
+                Text(selected?.let { "${it.name} · ${it.accountName}" } ?: "– keiner –", modifier = Modifier.weight(1f), maxLines = 1)
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                DropdownMenuItem(text = { Text("– keiner –") }, onClick = { onPick(null); open = false })
+                options.forEach { cal ->
+                    DropdownMenuItem(
+                        text = { Text("${cal.name} · ${cal.accountName}") },
+                        leadingIcon = { ColorDot(cal.color, size = 12) },
+                        onClick = { onPick(cal.id); open = false },
                     )
                 }
             }

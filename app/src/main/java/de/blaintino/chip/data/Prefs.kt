@@ -89,3 +89,30 @@ object SubscriptionStore {
     private fun JSONObject.optStringOrNull(key: String): String? =
         if (has(key) && !isNull(key)) optString(key).takeIf { it.isNotEmpty() } else null
 }
+
+/**
+ * Kalender der Plus-Knöpfe (Schnellauswahl, Wunsch des Nutzers: „Langners“ und „Arbeit“).
+ * Gespeichert als Kalender-IDs; beim ersten Start nach Namen vorbelegt, danach im Tab „Kalender“
+ * änderbar. Leere Liste = ein einfacher Plus-Knopf mit dem Standardkalender.
+ */
+object QuickAddCalendars {
+    private const val PREFS = "chip"
+    private const val KEY = "quick_add_calendars"
+    const val SLOTS = 2
+    val DEFAULT_NAMES = listOf("Langners", "Arbeit")
+
+    /** IDs je Platz (null = leer), oder null, wenn noch nie festgelegt. */
+    fun get(context: Context): List<Long?>? {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null) ?: return null
+        return raw.split(',').map { it.toLongOrNull() }.let { it + List(maxOf(0, SLOTS - it.size)) { null } }.take(SLOTS)
+    }
+
+    fun set(context: Context, ids: List<Long?>) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY, ids.joinToString(",") { it?.toString() ?: "" }).commit()
+    }
+
+    /** Vorbelegung nach Namen (ohne Groß-/Kleinschreibung) unter den beschreibbaren Kalendern. */
+    fun defaults(calendars: List<CalendarInfo>): List<Long?> =
+        DEFAULT_NAMES.map { name -> calendars.firstOrNull { it.writable && it.name.equals(name, ignoreCase = true) }?.id }
+}

@@ -17,6 +17,10 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   die Termine des gewählten Tages) ↔ **Woche** ↔ **Tag** (wie die Woche, nur ein Tag, mit Ort).
   **Wischen** nach links/rechts blättert zum nächsten/vorherigen Tag, Woche, Monat oder Jahr.
   **Doppeltipp auf den Tab** wechselt direkt zwischen Woche und Monat.
+- **Plus-Knöpfe**: je ein Plus für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
+  deren Farbe), änderbar unter „Kalender & Abos“ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
+  heute zur nächsten vollen Stunde.
+- **Heute**: Knopf neben dem Titel (Tag/Woche/Monat/Jahr) springt in der aktuellen Ansicht zu heute.
 - **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
   Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter „Kalender & Abos“
   eingeschaltet sind. Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum
