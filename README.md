@@ -18,7 +18,8 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   **Zoomen mit zwei Fingern:** Aufziehen wechselt eine Stufe feiner, Zusammenschieben eine gröber:
   **Jahr** (12 kleine Monate, Tage mit Terminen markiert) ↔ **Monat** (Raster mit Farbpunkten, darunter
   die Termine des gewählten Tages) ↔ **Woche** ↔ **Tag** (wie die Woche, nur ein Tag, mit Ort).
-  **Wischen** nach links/rechts blättert zum nächsten/vorherigen Tag, Woche, Monat oder Jahr.
+  **Wischen** nach links/rechts blättert zum nächsten/vorherigen Tag, Woche, Monat oder Jahr; die Ansicht
+  folgt dabei dem Finger und schiebt sich weg. Beim Zoomen skalieren und überblenden die Ansichten live.
 - **Plus-Knöpfe**: nebeneinander, je ein Plus mit den ersten drei Buchstaben für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
   deren Farbe), änderbar unter ⚙ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
   heute zur nächsten vollen Stunde.

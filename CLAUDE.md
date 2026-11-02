@@ -43,7 +43,13 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   `CalendarZoom` (Tag/Woche/Monat/Jahr, `Zoom.kt`): **Pinch** (zwei Finger aufziehen = feiner,
   zusammenschieben = gröber, eine Stufe je Geste) und **Wischen** mit einem Finger (links = nächster,
   rechts = vorheriger Zeitraum, `CalendarZoom.shift`; Wunsch des Nutzers) laufen zusammen in
-  `calendarGestures` (Initial-Durchgang, verbraucht erst nach erkannter Geste, damit senkrechtes Scrollen
+  `calendarGestures` mit **laufender Rückmeldung** (Wunsch des Nutzers, Mockup-Artefakt „Chip Gesten-Mockup“):
+  Wischen verschiebt die Ansicht mit dem Finger (`dragX`, Nachbarn links/rechts nur während des Wischens
+  gezeichnet), Loslassen nach ¼ Breite oder mit Schwung blättert (`settleSwipe`, 280 ms), sonst zurück;
+  Pfeile im Kopf animieren genauso (`select` erkennt Sprünge um genau einen Zeitraum). Pinch skaliert
+  aktuelle und Ziel-Ansicht live (aufziehen: Ziel wächst aus dem Fingermittelpunkt; ab 45 % Fortschritt
+  wird beim Loslassen gewechselt, `settlePinch`). Alle Seiten in einer Schleife mit `key(Stufe, Datum)`,
+  damit Nachbar/Ziel beim Übernehmen ihren Zustand behalten (Initial-Durchgang, verbraucht erst nach erkannter Geste, damit senkrechtes Scrollen
   und Tippen unberührt bleiben und ein Wischen kein Tippen auslöst). Tag = `WeekScreen` mit
   `dayCount = 1`. Alle Stufen folgen `selectedDay` (auch die Monatsnavigation), damit Zoomen beim
   selben Datum bleibt. Tippen auf eine freie Stelle im
