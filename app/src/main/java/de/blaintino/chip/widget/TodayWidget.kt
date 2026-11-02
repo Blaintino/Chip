@@ -162,7 +162,6 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 private val BG = Color.Black
 private val TEXT = ColorProvider(Color.White)
 private val TEXT_DIM = ColorProvider(Color(0xFFB0B0B0))
-private val QUAELGEIST_COLOR = Color(0xFF5F6368)
 
 @Composable
 private fun WidgetContent(today: LocalDate, state: WidgetData) {
@@ -206,17 +205,21 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
 private fun ButtonRow(quick: List<QuickButton>) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         quick.forEach { q ->
+            val bg = Color(q.color)
             WidgetButton(
                 label = "+ ${q.name}",
-                color = Color(q.color),
+                background = ColorProvider(bg),
+                content = ColorProvider(if (bg.luminance() > 0.5f) Color.Black else Color.White),
                 action = actionStartActivity(NewEventIntents.forCalendar(LocalContext.current, q.calendarId)),
                 modifier = GlanceModifier.defaultWeight(),
             )
             Spacer(GlanceModifier.width(6.dp))
         }
+        // Gleiche Hauptfarbe wie die Überschriften und die Heute-Markierung in Chip (Material You).
         WidgetButton(
             label = "+ Quälgeist",
-            color = QUAELGEIST_COLOR,
+            background = GlanceTheme.colors.primary,
+            content = GlanceTheme.colors.onPrimary,
             action = actionStartActivity<QuaelgeistActivity>(),
             modifier = GlanceModifier.defaultWeight(),
         )
@@ -224,16 +227,21 @@ private fun ButtonRow(quick: List<QuickButton>) {
 }
 
 @Composable
-private fun WidgetButton(label: String, color: Color, action: Action, modifier: GlanceModifier) {
-    val fg = if (color.luminance() > 0.5f) Color.Black else Color.White
+private fun WidgetButton(
+    label: String,
+    background: ColorProvider,
+    content: ColorProvider,
+    action: Action,
+    modifier: GlanceModifier,
+) {
     Box(
-        modifier = modifier.height(36.dp).cornerRadius(18.dp).background(color).clickable(action),
+        modifier = modifier.height(36.dp).cornerRadius(18.dp).background(background).clickable(action),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             maxLines = 1,
-            style = TextStyle(color = ColorProvider(fg), fontWeight = FontWeight.Medium, fontSize = 13.sp),
+            style = TextStyle(color = content, fontWeight = FontWeight.Medium, fontSize = 13.sp),
         )
     }
 }

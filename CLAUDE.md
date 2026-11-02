@@ -84,7 +84,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   `WidgetFilter`, Tests `WidgetFilterTest`; ganztägige bleiben), Neuzeichnen zum nächsten Terminende
   (`Background.scheduleWidgetRefreshAt`, WorkManager, kann im Doze-Modus etwas später kommen). Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
   (öffnen `MainActivity` mit `NewEventIntents`, eigene Daten-URI je Kalender gegen zusammengelegte
-  PendingIntents) und „+ Quälgeist“ über das Sprungbrett `QuaelgeistActivity`: Aktion
+  PendingIntents) und „+ Quälgeist“ (Farbe `GlanceTheme.colors.primary` = Material-You-Hauptfarbe wie die Überschriften
+  und Heute-Markierung in der App, Wunsch des Nutzers) über das Sprungbrett `QuaelgeistActivity`: Aktion
   `de.quaelgeist.action.QUICK_ADD` (Quälgeist, dann Beta), sonst Quälgeist starten, sonst Hinweis;
   `<queries>` für beide Pakete im Manifest. Neu zeichnen über `TodayWidget.refresh`: nach eigenen Änderungen,
   nach Abo-Updates, bei jeder Änderung in der Kalenderdatenbank (WorkManager-Content-URI-Auslöser,
