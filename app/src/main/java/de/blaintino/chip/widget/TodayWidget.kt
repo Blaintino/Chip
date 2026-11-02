@@ -272,14 +272,15 @@ private fun WeatherPill(text: String) {
     Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             // Antippen öffnet Chip (Wunsch des Nutzers).
-            modifier = GlanceModifier.height(36.dp).cornerRadius(18.dp).background(BG)
-                .padding(horizontal = 16.dp).clickable(actionStartActivity<MainActivity>()),
+            modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(BG)
+                .padding(horizontal = 18.dp).clickable(actionStartActivity<MainActivity>()),
             contentAlignment = Alignment.Center,
         ) {
+            // Größere Schrift (Wunsch des Nutzers, vorher 13 sp).
             Text(
                 text = text,
                 maxLines = 1,
-                style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp, textAlign = TextAlign.Center),
+                style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center),
             )
         }
     }
