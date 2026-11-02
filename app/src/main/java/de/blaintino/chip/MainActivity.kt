@@ -86,16 +86,27 @@ class MainActivity : ComponentActivity() {
     /** webcal://-Link, mit dem die App geöffnet wurde (öffnet den Abo-Dialog). */
     private var pendingWebcal by mutableStateOf<String?>(null)
 
+    /** Kalender eines Widget-Plus-Knopfs: öffnet sofort „Neuer Termin“ in diesem Kalender. */
+    private var pendingNewEvent by mutableStateOf<Long?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (savedInstanceState == null) pendingWebcal = webcalFrom(intent)
+        if (savedInstanceState == null) {
+            pendingWebcal = webcalFrom(intent)
+            pendingNewEvent = NewEventIntents.calendarIdFrom(intent)
+        }
         Background.schedule(this)
         // Widget bei jedem Start neu zeichnen (falls es nach einem Update hängen geblieben ist).
         lifecycleScope.launch { TodayWidget.refresh(applicationContext) }
         setContent {
             ChipTheme {
-                ChipApp(pendingWebcal, onWebcalHandled = { pendingWebcal = null })
+                ChipApp(
+                    pendingWebcal,
+                    onWebcalHandled = { pendingWebcal = null },
+                    pendingNewEvent = pendingNewEvent,
+                    onNewEventHandled = { pendingNewEvent = null },
+                )
             }
         }
     }
@@ -103,6 +114,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         webcalFrom(intent)?.let { pendingWebcal = it }
+        NewEventIntents.calendarIdFrom(intent)?.let { pendingNewEvent = it }
     }
 
     private fun webcalFrom(intent: Intent?): String? =
@@ -113,7 +125,12 @@ private const val DAY_MS = 86_400_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
+private fun ChipApp(
+    pendingWebcal: String?,
+    onWebcalHandled: () -> Unit,
+    pendingNewEvent: Long?,
+    onNewEventHandled: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repo = remember { CalendarRepository(context) }
@@ -225,6 +242,15 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
 
     // Einstellungen (früher Tab „Kalender“) als eigener Bildschirm über das Zahnrad; Zurück schließt ihn.
     BackHandler(enabled = showSettings) { showSettings = false }
+
+    // Widget-Plus: sobald die Kalender geladen sind, „Neuer Termin“ im gewählten Kalender öffnen.
+    LaunchedEffect(pendingNewEvent, calendars) {
+        val id = pendingNewEvent ?: return@LaunchedEffect
+        if (calendars.isEmpty()) return@LaunchedEffect
+        showSettings = false
+        newEvent(calendarId = id)
+        onNewEventHandled()
+    }
 
     Scaffold(
         topBar = {

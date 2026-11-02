@@ -16,6 +16,7 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.action.actionStartActivity
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -43,6 +44,12 @@ import de.blaintino.chip.data.CalendarRepository
 import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.Formats
 import de.blaintino.chip.data.HiddenCalendars
+import de.blaintino.chip.data.QuickAddCalendars
+import de.blaintino.chip.QuaelgeistActivity
+import androidx.glance.LocalContext
+import androidx.glance.action.Action
+import androidx.glance.unit.ColorProvider
+import androidx.compose.ui.graphics.luminance
 import de.blaintino.chip.sync.Background
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -81,8 +88,12 @@ class TodayWidget : GlanceAppWidget() {
             WidgetData.NoPermission
         } else {
             val events = repo.instances(today, today, HiddenCalendars.get(context))
+            val calendars = repo.calendars()
+            val quick = (QuickAddCalendars.get(context) ?: emptyList()).mapNotNull { id ->
+                calendars.firstOrNull { it.id == id && it.writable }?.let { QuickButton(it.id, it.name, it.color) }
+            }
             WidgetStatus.record(context, "${events.size} Termine geladen")
-            WidgetData.Loaded(events)
+            WidgetData.Loaded(events, quick)
         }
     } catch (e: Exception) {
         Log.e(TAG, "Widget konnte nicht laden", e)
@@ -108,10 +119,12 @@ class TodayWidget : GlanceAppWidget() {
     }
 }
 
+private data class QuickButton(val calendarId: Long, val name: String, val color: Int)
+
 private sealed interface WidgetData {
     data object Loading : WidgetData
     data object NoPermission : WidgetData
-    data class Loaded(val events: List<EventInstance>) : WidgetData
+    data class Loaded(val events: List<EventInstance>, val quick: List<QuickButton>) : WidgetData
     data class Failed(val message: String) : WidgetData
 }
 
@@ -141,43 +154,86 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 }
 
+// Fester schwarzer Hintergrund (Wunsch des Nutzers), unabhängig vom Systemdesign.
+private val BG = Color.Black
+private val TEXT = ColorProvider(Color.White)
+private val TEXT_DIM = ColorProvider(Color(0xFFB0B0B0))
+private val QUAELGEIST_COLOR = Color(0xFF5F6368)
+
 @Composable
 private fun WidgetContent(today: LocalDate, state: WidgetData) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.widgetBackground)
+            .background(BG)
             .cornerRadius(16.dp)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-            .clickable(actionStartActivity<MainActivity>()),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
             text = Formats.dayHeader(today, today),
-            style = TextStyle(color = GlanceTheme.colors.primary, fontWeight = FontWeight.Bold, fontSize = 15.sp),
+            modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
+            style = TextStyle(color = TEXT, fontWeight = FontWeight.Bold, fontSize = 15.sp),
         )
         Spacer(GlanceModifier.height(6.dp))
-        when (state) {
-            WidgetData.Loading -> Hint("Lädt …")
-            WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
-            is WidgetData.Failed -> Hint("Fehler: ${state.message}")
-            is WidgetData.Loaded -> if (state.events.isEmpty()) {
-                Hint("Keine Termine heute")
-            } else {
-                // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
-                val indexed = state.events.withIndex().toList()
-                LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                    items(indexed, itemId = { it.index.toLong() }) { item ->
-                        EventLine(item.value, today)
+        Box(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
+            when (state) {
+                WidgetData.Loading -> Hint("Lädt …")
+                WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
+                is WidgetData.Failed -> Hint("Fehler: ${state.message}")
+                is WidgetData.Loaded -> if (state.events.isEmpty()) {
+                    Hint("Keine Termine heute")
+                } else {
+                    // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
+                    val indexed = state.events.withIndex().toList()
+                    LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+                        items(indexed, itemId = { it.index.toLong() }) { item ->
+                            EventLine(item.value, today)
+                        }
                     }
                 }
             }
+        }
+        // Knöpfe: die Plus-Knöpfe der App (gleiche Kalender und Farben) und ein neuer Quälgeist.
+        val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
+        Spacer(GlanceModifier.height(6.dp))
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            quick.forEach { q ->
+                WidgetButton(
+                    label = "+ ${q.name}",
+                    color = Color(q.color),
+                    action = actionStartActivity(NewEventIntents.forCalendar(LocalContext.current, q.calendarId)),
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+                Spacer(GlanceModifier.width(6.dp))
+            }
+            WidgetButton(
+                label = "+ Quälgeist",
+                color = QUAELGEIST_COLOR,
+                action = actionStartActivity<QuaelgeistActivity>(),
+                modifier = GlanceModifier.defaultWeight(),
+            )
         }
     }
 }
 
 @Composable
+private fun WidgetButton(label: String, color: Color, action: Action, modifier: GlanceModifier) {
+    val fg = if (color.luminance() > 0.5f) Color.Black else Color.White
+    Box(
+        modifier = modifier.height(36.dp).cornerRadius(18.dp).background(color).clickable(action),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            maxLines = 1,
+            style = TextStyle(color = ColorProvider(fg), fontWeight = FontWeight.Medium, fontSize = 13.sp),
+        )
+    }
+}
+
+@Composable
 private fun Hint(text: String) {
-    Text(text = text, style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp))
+    Text(text = text, style = TextStyle(color = TEXT_DIM, fontSize = 13.sp))
 }
 
 @Composable
@@ -192,18 +248,18 @@ private fun EventLine(ev: EventInstance, today: LocalDate) {
         Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
                 text = Formats.timeRange(ev, today),
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
+                style = TextStyle(color = TEXT_DIM, fontSize = 12.sp),
             )
             Text(
                 text = ev.title,
                 maxLines = 2,
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp),
+                style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 14.sp),
             )
             if (ev.location.isNotBlank()) {
                 Text(
                     text = ev.location,
                     maxLines = 1,
-                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
+                    style = TextStyle(color = TEXT_DIM, fontSize = 12.sp),
                 )
             }
         }

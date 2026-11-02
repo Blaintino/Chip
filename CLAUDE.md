@@ -71,8 +71,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   - Zeitzonen: IANA-Name, Mozilla-Präfix, Windows-Name (ICU), sonst `X-WR-TIMEZONE`, sonst Gerät.
   - WorkManager: täglich mit Netz (`Background.schedule`, auch bei jedem App-Start), beim Öffnen
     nachholen, wenn ein Abo über einen Tag alt ist.
-- **Widget „Heute“** (Glance): scrollbare Liste mit Uhrzeit, Titel, Ort (Wunsch des Nutzers; weitere
-  Widget-Gestaltung noch offen). Neu zeichnen über `TodayWidget.refresh`: nach eigenen Änderungen,
+- **Widget „Heute“** (Glance): reines Schwarz als Hintergrund, feste helle Schrift (Wunsch des Nutzers),
+  scrollbare Liste mit Uhrzeit, Titel, Ort. Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
+  (öffnen `MainActivity` mit `NewEventIntents`, eigene Daten-URI je Kalender gegen zusammengelegte
+  PendingIntents) und „+ Quälgeist“ über das Sprungbrett `QuaelgeistActivity`: Aktion
+  `de.quaelgeist.action.QUICK_ADD` (Quälgeist, dann Beta), sonst Quälgeist starten, sonst Hinweis;
+  `<queries>` für beide Pakete im Manifest. Neu zeichnen über `TodayWidget.refresh`: nach eigenen Änderungen,
   nach Abo-Updates, bei jeder Änderung in der Kalenderdatenbank (WorkManager-Content-URI-Auslöser,
   der sich nach jedem Lauf neu anmeldet) und kurz nach Mitternacht.
   Daten werden **innerhalb der Komposition** geladen (`LaunchedEffect` auf `refreshTick`), nicht vor
