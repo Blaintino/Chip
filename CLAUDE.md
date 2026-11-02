@@ -104,6 +104,10 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Namensnennung in den Einstellungen), Ort **nur per Namenssuche** in den Einstellungen – ausdrücklich
   keine Standort-Berechtigung. Antwort in SharedPreferences `weather`, höchstens stündlich neu
   (`Weather.today`, `WeatherWorker` stündlich mit Netz); bei Netzfehler bleibt der letzte Stand von heute.
+  Abrufstatus (`Weather.lastStatus`) und heutige Werte stehen in den Einstellungen, Knopf „Wetter jetzt
+  laden“. Auf dem Gerät bestätigt (v37, 2026-11-02); in v35 erschien das Wetter zunächst nicht, nach
+  „Wetter jetzt laden“ lief es – Ursache unklar (vermutlich Widget nicht neu gezeichnet oder erster Abruf
+  fehlgeschlagen).
 - Neue Abhängigkeiten nur mit gutem Grund. Aktuell: Compose, Core-KTX, Activity-Compose,
   Lifecycle, WorkManager, Glance.
 - Debug-Build: App-ID `de.blaintino.chip.debug`, Name über den Manifest-Platzhalter `appLabel`.
