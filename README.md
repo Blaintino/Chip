@@ -10,12 +10,19 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   du im Google Kalender ein, Chip zeigt und bearbeitet nur, was das Konto synchronisiert.
 - **Termine**: Liste der nächsten 90 Tage, nach Tagen gruppiert.
 - **Woche** (Startansicht): Mo–So mit Stundenraster, ganztägige Termine oben, Überschneidungen
-  nebeneinander, rote Linie für „jetzt“. Beim Öffnen füllt 8–18 Uhr die Höhe (Stundenhöhe passt
+  nebeneinander, rote Linie für „jetzt“. **Lang drücken** im Raster (Tag/Woche) zeigt einen Zeitwähler
+  unter dem Daumen: ziehen wählt Viertelstunde (und in der Woche den Tag), Loslassen öffnet den
+  Editor mit diesem Beginn. In der Monatsansicht öffnet langes Drücken auf einen Tag einen neuen Termin. Beim Öffnen füllt 8–18 Uhr die Höhe (Stundenhöhe passt
   sich dem Bildschirm an), davor/danach scrollen. Tippen auf eine freie Stelle legt dort einen Termin an.
   **Zoomen mit zwei Fingern:** Aufziehen wechselt eine Stufe feiner, Zusammenschieben eine gröber:
   **Jahr** (12 kleine Monate, Tage mit Terminen markiert) ↔ **Monat** (Raster mit Farbpunkten, darunter
   die Termine des gewählten Tages) ↔ **Woche** ↔ **Tag** (wie die Woche, nur ein Tag, mit Ort).
+  **Wischen** nach links/rechts blättert zum nächsten/vorherigen Tag, Woche, Monat oder Jahr.
   **Doppeltipp auf den Tab** wechselt direkt zwischen Woche und Monat.
+- **Plus-Knöpfe**: je ein Plus für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
+  deren Farbe), änderbar unter „Kalender & Abos“ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
+  heute zur nächsten vollen Stunde.
+- **Heute**: Knopf neben dem Titel (Tag/Woche/Monat/Jahr) springt in der aktuellen Ansicht zu heute.
 - **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
   Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter „Kalender & Abos“
   eingeschaltet sind. Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum

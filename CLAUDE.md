@@ -30,8 +30,10 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Überschneidungen über `DayLayout`, Tests `DayLayoutTest`). Beim Öffnen ist 8–18 Uhr
   sichtbar (Wunsch des Nutzers): Stundenhöhe = verfügbare Höhe / 10, nicht fest codiert. Ein Tab mit vier Detailstufen
   `CalendarZoom` (Tag/Woche/Monat/Jahr, `Zoom.kt`): **Pinch** (zwei Finger aufziehen = feiner,
-  zusammenschieben = gröber, eine Stufe je Geste, `pinchToZoom` im Initial-Durchgang, verbraucht nur
-  Mehrfinger-Ereignisse); **Doppeltipp** auf den Tab wechselt Woche ↔ Monat. Tag = `WeekScreen` mit
+  zusammenschieben = gröber, eine Stufe je Geste) und **Wischen** mit einem Finger (links = nächster,
+  rechts = vorheriger Zeitraum, `CalendarZoom.shift`; Wunsch des Nutzers) laufen zusammen in
+  `calendarGestures` (Initial-Durchgang, verbraucht erst nach erkannter Geste, damit senkrechtes Scrollen
+  und Tippen unberührt bleiben und ein Wischen kein Tippen auslöst); **Doppeltipp** auf den Tab wechselt Woche ↔ Monat. Tag = `WeekScreen` mit
   `dayCount = 1`. Alle Stufen folgen `selectedDay` (auch die Monatsnavigation), damit Zoomen beim
   selben Datum bleibt. Tippen auf eine freie Stelle im
   Raster legt dort einen Termin an.
@@ -41,6 +43,16 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 - Ganztägige Termine: in `Events` Mitternacht UTC und Zeitzone `UTC`, `DTEND` exklusiv. Der Editor
   zeigt den letzten Tag; Umrechnung in `CalendarRepository.event/save`. Tage von Vorkommen aus
   `Instances.START_DAY/END_DAY` (julianisch), nicht aus `BEGIN/END`.
+- Plus-Knöpfe (Wunsch des Nutzers): je Schnellauswahl-Kalender ein `ExtendedFloatingActionButton` in
+  Kalenderfarbe (`QuickAddCalendars`, 2 Plätze, IDs in SharedPreferences, beim ersten Start nach Namen
+  „Langners“/„Arbeit“ vorbelegt, im Tab „Kalender“ änderbar; leer = einfaches Plus). Neuer Termin per
+  Plus: **heute** zur nächsten vollen Stunde (nicht der gewählte Tag); Tippen ins Raster: dort.
+- Lang drücken (Wunsch des Nutzers): Tag/Woche → Zeitwähler unter dem Daumen (Viertelstunden, Ziehen
+  auch über die Tage, Haptik, Loslassen öffnet den Editor); kurz tippen weiter = volle Stunde. Beides
+  in einer Geste am Raster (`WeekScreen`), damit Tippen und langes Drücken sich nicht doppeln;
+  `calendarGestures` wertet nach der Long-Press-Zeit kein Wischen mehr. Monat → langes Drücken auf
+  einen Tag öffnet „Neuer Termin“ (heute: nächste volle Stunde, sonst 9:00).
+- Knopf „Heute“ neben dem Titel (nur Tab Tag/Woche/Monat/Jahr) setzt `selectedDay` auf heute.
 - **ICS-Abos sind Pflichtfunktion** (Wunsch des Nutzers, tägliche Aktualisierung):
   - Jedes Abo = eigener lokaler Kalender (Konto `Chip-Abos`, Typ `ACCOUNT_TYPE_LOCAL`, nur lesbar),
     angelegt und befüllt als Sync-Adapter (`CALLER_IS_SYNCADAPTER`). Abo-Liste in
@@ -58,6 +70,11 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Widget-Gestaltung noch offen). Neu zeichnen über `TodayWidget.refresh`: nach eigenen Änderungen,
   nach Abo-Updates, bei jeder Änderung in der Kalenderdatenbank (WorkManager-Content-URI-Auslöser,
   der sich nach jedem Lauf neu anmeldet) und kurz nach Mitternacht.
+  Daten werden **innerhalb der Komposition** geladen (`LaunchedEffect` auf `refreshTick`), nicht vor
+  `provideContent`: Läuft die Glance-Sitzung schon, ruft ein Update `provideGlance` nicht erneut auf.
+  Fehler erscheinen als Text im Widget; `WidgetStatus` (Zeit + Meldung) steht im Tab „Kalender“ mit
+  Knopf „Widget neu zeichnen“ – zur Fehlersuche am Handy ohne adb (Nutzer meldete 2026-11-02 eine
+  dauerhafte Ladeanzeige, Ursache noch offen).
 - Neue Abhängigkeiten nur mit gutem Grund. Aktuell: Compose, Core-KTX, Activity-Compose,
   Lifecycle, WorkManager, Glance.
 - Debug-Build: App-ID `de.blaintino.chip.debug`, Name über den Manifest-Platzhalter `appLabel`.

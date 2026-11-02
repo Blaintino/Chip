@@ -15,6 +15,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import de.blaintino.chip.data.QuickAddCalendars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -60,7 +70,7 @@ import de.blaintino.chip.ui.MonthScreen
 import de.blaintino.chip.ui.WeekScreen
 import de.blaintino.chip.ui.YearScreen
 import de.blaintino.chip.ui.CalendarZoom
-import de.blaintino.chip.ui.pinchToZoom
+import de.blaintino.chip.ui.calendarGestures
 import androidx.compose.foundation.layout.Box
 import de.blaintino.chip.widget.TodayWidget
 import kotlinx.coroutines.Dispatchers
@@ -145,6 +155,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     var calendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
     var editing by remember { mutableStateOf<EventDraft?>(null) }
     var details by remember { mutableStateOf<EventInstance?>(null) }
+    var quickIds by remember { mutableStateOf(QuickAddCalendars.get(context) ?: emptyList()) }
 
     // Jede Änderung in der Kalenderdatenbank (Google-Sync, Abo, andere Apps) lädt die Ansicht neu.
     DisposableEffect(Unit) {
@@ -156,7 +167,14 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         context.contentResolver.registerContentObserver(CalendarContract.CONTENT_URI, true, observer)
         onDispose { context.contentResolver.unregisterContentObserver(observer) }
     }
-    LaunchedEffect(version) { calendars = withContext(Dispatchers.IO) { repo.calendars() } }
+    LaunchedEffect(version) {
+        calendars = withContext(Dispatchers.IO) { repo.calendars() }
+        // Beim ersten Start die Plus-Knöpfe nach Namen („Langners“, „Arbeit“) vorbelegen.
+        if (QuickAddCalendars.get(context) == null && calendars.isNotEmpty()) {
+            quickIds = QuickAddCalendars.defaults(calendars)
+            QuickAddCalendars.set(context, quickIds)
+        }
+    }
     // Abos, die länger als einen Tag nicht geladen wurden, beim Öffnen nachholen.
     LaunchedEffect(Unit) {
         val stale = withContext(Dispatchers.IO) {
@@ -179,18 +197,22 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     fun editorCalendars(currentId: Long?) =
         calendars.filter { it.writable && it.accountName != SubscriptionSync.ACCOUNT_NAME && (it.id !in hidden || it.id == currentId) }
 
-    fun newEvent(at: LocalDateTime? = null) {
+    /**
+     * Neuer Termin. Ohne [at] (Plus-Knopf) heute zur nächsten vollen Stunde (Wunsch des Nutzers),
+     * mit [at] (Tippen ins Raster) dort. [calendarId] kommt von einem Schnellauswahl-Plus.
+     */
+    fun newEvent(at: LocalDateTime? = null, calendarId: Long? = null) {
         val choices = editorCalendars(null)
         // Bevorzugt der Hauptkalender eines Kontos (Name = Kontoname, bei Google die Mailadresse).
-        val cal = choices.firstOrNull { it.name == it.accountName } ?: choices.firstOrNull()
+        val cal = calendarId?.let { id -> calendars.firstOrNull { it.id == id && it.writable } }
+            ?: choices.firstOrNull { it.name == it.accountName } ?: choices.firstOrNull()
         if (cal == null) {
             Toast.makeText(context, "Kein beschreibbarer Kalender eingeschaltet (Tab „Kalender“)", Toast.LENGTH_LONG).show()
             return
         }
         val zone = ZoneId.systemDefault()
         val now = LocalDateTime.now(zone)
-        val start = at ?: if (selectedDay == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
-        else selectedDay.atTime(9, 0)
+        val start = at ?: now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
         editing = EventDraft(
             id = null,
             calendarId = cal.id,
@@ -207,13 +229,24 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        when (tab) {
-                            TAB_AGENDA -> "Termine"
-                            TAB_GRID -> zoom.label
-                            else -> "Kalender & Abos"
-                        },
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            when (tab) {
+                                TAB_AGENDA -> "Termine"
+                                TAB_GRID -> zoom.label
+                                else -> "Kalender & Abos"
+                            },
+                        )
+                        if (tab == TAB_GRID) {
+                            Spacer(Modifier.width(12.dp))
+                            // Springt in der aktuellen Ansicht zu heute (Wunsch des Nutzers).
+                            OutlinedButton(
+                                onClick = { selectedDay = LocalDate.now() },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                modifier = Modifier.height(32.dp),
+                            ) { Text("Heute", style = MaterialTheme.typography.labelLarge) }
+                        }
+                    }
                 },
             )
         },
@@ -248,17 +281,35 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         },
         floatingActionButton = {
             if (tab != TAB_CALENDARS) {
-                FloatingActionButton(onClick = { newEvent() }) { Text("+", style = MaterialTheme.typography.headlineSmall) }
+                // Ein Plus je Schnellauswahl-Kalender in dessen Farbe; ohne Auswahl ein einfaches Plus.
+                val quick = quickIds.mapNotNull { id -> calendars.firstOrNull { it.id == id && it.writable } }
+                if (quick.isEmpty()) {
+                    FloatingActionButton(onClick = { newEvent() }) { Text("+", style = MaterialTheme.typography.headlineSmall) }
+                } else {
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        quick.forEach { cal ->
+                            val bg = Color(cal.color)
+                            ExtendedFloatingActionButton(
+                                onClick = { newEvent(calendarId = cal.id) },
+                                containerColor = bg,
+                                contentColor = if (bg.luminance() > 0.5f) Color.Black else Color.White,
+                            ) { Text("+  ${cal.name}") }
+                        }
+                    }
+                }
             }
         },
     ) { padding ->
         when (tab) {
             TAB_AGENDA -> AgendaScreen(repo, version, hidden, padding, onEventClick = ::openEvent)
-            // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber.
+            // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber;
+            // ein Finger waagerecht wischen = vorheriger/nächster Zeitraum.
             TAB_GRID -> Box(
-                Modifier.fillMaxSize().pinchToZoom(
+                Modifier.fillMaxSize().calendarGestures(
                     onZoomIn = { zoom = zoom.zoomIn() },
                     onZoomOut = { zoom = zoom.zoomOut() },
+                    // Wischen nach links = nächster Tag/Woche/Monat/Jahr, nach rechts = vorheriger.
+                    onSwipe = { selectedDay = zoom.shift(selectedDay, it) },
                 ),
             ) {
                 when (zoom) {
@@ -278,6 +329,13 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                         onSelect = { selectedDay = it },
                         contentPadding = padding,
                         onEventClick = ::openEvent,
+                        onCreateOn = { day ->
+                            val now = LocalDateTime.now()
+                            newEvent(
+                                at = if (day == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+                                else day.atTime(9, 0),
+                            )
+                        },
                     )
                     CalendarZoom.YEAR -> YearScreen(
                         repo = repo,
@@ -302,6 +360,11 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                     HiddenCalendars.set(context, it)
                     scope.launch { TodayWidget.refresh(context) }
                 },
+                quickIds = quickIds,
+                onQuickIdsChange = {
+                    quickIds = it
+                    QuickAddCalendars.set(context, it)
+                },
                 prefillUrl = pendingWebcal,
                 onPrefillHandled = onWebcalHandled,
                 contentPadding = padding,
@@ -312,7 +375,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     editing?.let { draft ->
         EventEditor(
             draft = draft,
-            calendars = editorCalendars(draft.id?.let { draft.calendarId }),
+            calendars = editorCalendars(draft.calendarId),
             onDismiss = { editing = null },
             onSave = { updated ->
                 editing = null

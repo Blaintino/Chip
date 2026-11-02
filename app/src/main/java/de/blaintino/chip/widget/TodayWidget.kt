@@ -1,7 +1,14 @@
 package de.blaintino.chip.widget
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,7 +44,9 @@ import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.Formats
 import de.blaintino.chip.data.HiddenCalendars
 import de.blaintino.chip.sync.Background
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
@@ -45,22 +54,81 @@ import java.time.LocalDate
 class TodayWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val today = LocalDate.now()
-        val repo = CalendarRepository(context)
-        val events: List<EventInstance>? = withContext(Dispatchers.IO) {
-            if (repo.hasPermission()) repo.instances(today, today, HiddenCalendars.get(context)) else null
-        }
+        WidgetStatus.record(context, "Widget gestartet")
         provideContent {
+            // Laden innerhalb der Komposition: Glance zeigt sofort eigenen Inhalt (statt der
+            // Glance-Ladeanzeige), und ein Fehler beim Laden erscheint als Text im Widget.
+            // Läuft die Sitzung schon, ruft Glance provideGlance bei einem Update nicht erneut auf;
+            // deshalb lädt ein Zähler (refresh) die Daten innerhalb der laufenden Sitzung neu.
+            val tick by refreshTick.collectAsState()
+            var today by remember { mutableStateOf(LocalDate.now()) }
+            var state by remember { mutableStateOf<WidgetData>(WidgetData.Loading) }
+            LaunchedEffect(tick) {
+                val day = LocalDate.now()
+                state = withContext(Dispatchers.IO) { load(context, day) }
+                today = day
+            }
             GlanceTheme {
-                WidgetContent(today, events)
+                WidgetContent(today, state)
             }
         }
     }
 
-    companion object {
-        suspend fun refresh(context: Context) {
-            runCatching { TodayWidget().updateAll(context) }
+    private fun load(context: Context, today: LocalDate): WidgetData = try {
+        val repo = CalendarRepository(context)
+        if (!repo.hasPermission()) {
+            WidgetStatus.record(context, "Kein Kalenderzugriff")
+            WidgetData.NoPermission
+        } else {
+            val events = repo.instances(today, today, HiddenCalendars.get(context))
+            WidgetStatus.record(context, "${events.size} Termine geladen")
+            WidgetData.Loaded(events)
         }
+    } catch (e: Exception) {
+        Log.e(TAG, "Widget konnte nicht laden", e)
+        WidgetStatus.record(context, "Fehler: ${e.javaClass.simpleName}: ${e.message}")
+        WidgetData.Failed(e.message ?: e.javaClass.simpleName)
+    }
+
+    companion object {
+        private const val TAG = "ChipWidget"
+        private val refreshTick = MutableStateFlow(0)
+
+        suspend fun refresh(context: Context) {
+            refreshTick.value++
+            try {
+                TodayWidget().updateAll(context)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget-Update fehlgeschlagen", e)
+                WidgetStatus.record(context, "Update fehlgeschlagen: ${e.javaClass.simpleName}: ${e.message}")
+            }
+        }
+    }
+}
+
+private sealed interface WidgetData {
+    data object Loading : WidgetData
+    data object NoPermission : WidgetData
+    data class Loaded(val events: List<EventInstance>) : WidgetData
+    data class Failed(val message: String) : WidgetData
+}
+
+/** Letzter Stand des Widgets (Zeit + Text), angezeigt im Tab „Kalender“ zur Fehlersuche ohne adb. */
+object WidgetStatus {
+    private const val PREFS = "widget"
+
+    fun record(context: Context, message: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong("time", System.currentTimeMillis()).putString("message", message).commit()
+    }
+
+    /** (Zeit, Text) oder null, wenn das Widget noch nie gezeichnet wurde. */
+    fun last(context: Context): Pair<Long, String>? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val msg = prefs.getString("message", null) ?: return null
+        return prefs.getLong("time", 0) to msg
     }
 }
 
@@ -74,7 +142,7 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun WidgetContent(today: LocalDate, events: List<EventInstance>?) {
+private fun WidgetContent(today: LocalDate, state: WidgetData) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -88,12 +156,19 @@ private fun WidgetContent(today: LocalDate, events: List<EventInstance>?) {
             style = TextStyle(color = GlanceTheme.colors.primary, fontWeight = FontWeight.Bold, fontSize = 15.sp),
         )
         Spacer(GlanceModifier.height(6.dp))
-        when {
-            events == null -> Hint("Kalenderzugriff in Chip erlauben")
-            events.isEmpty() -> Hint("Keine Termine heute")
-            else -> LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                items(events, itemId = { it.eventId * 100_003L + it.begin }) { ev ->
-                    EventLine(ev, today)
+        when (state) {
+            WidgetData.Loading -> Hint("Lädt …")
+            WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
+            is WidgetData.Failed -> Hint("Fehler: ${state.message}")
+            is WidgetData.Loaded -> if (state.events.isEmpty()) {
+                Hint("Keine Termine heute")
+            } else {
+                // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
+                val indexed = state.events.withIndex().toList()
+                LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+                    items(indexed, itemId = { it.index.toLong() }) { item ->
+                        EventLine(item.value, today)
+                    }
                 }
             }
         }

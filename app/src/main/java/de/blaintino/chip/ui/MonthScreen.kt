@@ -2,7 +2,11 @@ package de.blaintino.chip.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +58,8 @@ fun MonthScreen(
     onSelect: (LocalDate) -> Unit,
     contentPadding: PaddingValues,
     onEventClick: (EventInstance) -> Unit,
+    /** Langes Drücken auf einen Tag: neuer Termin an diesem Tag (Wunsch des Nutzers). */
+    onCreateOn: (LocalDate) -> Unit,
 ) {
     val today = LocalDate.now()
     // Der Monat folgt dem gewählten Tag, damit Zoomen (Woche/Jahr) beim selben Datum bleibt.
@@ -65,6 +71,7 @@ fun MonthScreen(
         byDay = withContext(Dispatchers.IO) { groupByDay(repo.instances(first, last, hidden), first, last).toMap() }
     }
     val dayEvents = byDay[selected].orEmpty()
+    val haptic = LocalHapticFeedback.current
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
         item {
@@ -112,6 +119,11 @@ fun MonthScreen(
                                 events = byDay[day].orEmpty(),
                                 modifier = Modifier.weight(1f),
                                 onClick = { onSelect(day) },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onSelect(day)
+                                    onCreateOn(day)
+                                },
                             )
                         }
                     }
@@ -137,6 +149,7 @@ fun MonthScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DayCell(
     day: LocalDate,
@@ -146,6 +159,7 @@ private fun DayCell(
     events: List<EventInstance>,
     modifier: Modifier,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
@@ -154,7 +168,7 @@ private fun DayCell(
             .padding(2.dp)
             .clip(RoundedCornerShape(10.dp))
             .then(if (isSelected) Modifier.background(colors.secondaryContainer) else Modifier)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(top = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

@@ -3,7 +3,9 @@ package de.blaintino.chip.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +44,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import kotlin.math.roundToInt
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,11 +74,13 @@ private val MIN_HOUR_HEIGHT = 28.dp
 private val TIME_COLUMN = 36.dp
 private val WEEKDAY = DateTimeFormatter.ofPattern("EE", Locale.GERMAN)
 private const val MAX_ALL_DAY = 2
+private val PICKER_DAY = DateTimeFormatter.ofPattern("EE, d. MMM", Locale.GERMAN)
 
 /**
  * Wochen- (Mo–So) bzw. Tagesansicht mit Stundenraster. Ganztägige Termine oben, zeitgebundene im Raster
  * (mehrtägige je Tag zugeschnitten, Überschneidungen nebeneinander über [DayLayout]).
- * Tippen auf eine freie Stelle legt dort einen Termin an.
+ * Tippen auf eine freie Stelle legt dort einen Termin an, langes Drücken öffnet einen Zeitwähler
+ * unter dem Daumen (Viertelstunden, in der Woche auch seitlich über die Tage).
  */
 @Composable
 fun WeekScreen(
@@ -101,6 +109,9 @@ fun WeekScreen(
     val anyAllDay = allDayByDay.values.any { it.isNotEmpty() }
 
     val scroll = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
+    val createAt by rememberUpdatedState(onCreateAt)
+    var picker by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val density = LocalDensity.current
 
     Column(Modifier.fillMaxSize().padding(contentPadding)) {
@@ -179,7 +190,55 @@ fun WeekScreen(
             scroll.scrollTo(with(density) { (hourHeight * VISIBLE_FROM).roundToPx() })
         }
         Box(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            Row(Modifier.fillMaxWidth().height(hourHeight * 24).padding(end = 4.dp)) {
+            BoxWithConstraints(
+                Modifier.fillMaxWidth().height(hourHeight * 24).padding(end = 4.dp)
+                    .pointerInput(days, hourHeight) {
+                        val timeColPx = TIME_COLUMN.toPx()
+                        val hourPx = hourHeight.toPx()
+                        fun dayAt(x: Float) = ((x - timeColPx) / ((size.width - timeColPx) / days.size)).toInt().coerceIn(0, days.lastIndex)
+                        fun quarterAt(y: Float) = ((y / hourPx * 4f).roundToInt() * 15).coerceIn(0, 24 * 60 - 15)
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            if (down.position.x < timeColPx) return@awaitEachGesture
+                            // Kurz tippen: Termin zur angetippten vollen Stunde. Lang drücken: Zeitwähler
+                            // unter dem Daumen (Wunsch des Nutzers), Loslassen öffnet den Editor.
+                            var cancelled = false
+                            val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                waitForUpOrCancellation().also { if (it == null) cancelled = true }
+                            }
+                            if (cancelled) return@awaitEachGesture
+                            if (up != null) {
+                                up.consume()
+                                val hour = (up.position.y / hourPx).toInt().coerceIn(0, 23)
+                                createAt(days[dayAt(up.position.x)].atTime(hour, 0))
+                                return@awaitEachGesture
+                            }
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            var current = dayAt(down.position.x) to quarterAt(down.position.y)
+                            picker = current
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) {
+                                    change.consume()
+                                    val (di, min) = current
+                                    createAt(days[di].atTime(min / 60, min % 60))
+                                    break
+                                }
+                                change.consume()
+                                val next = dayAt(change.position.x) to quarterAt(change.position.y)
+                                if (next != current) {
+                                    current = next
+                                    picker = next
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
+                            picker = null
+                        }
+                    },
+            ) {
+            val dayWidth = (maxWidth - TIME_COLUMN) / days.size
+            Row(Modifier.fillMaxSize()) {
                 Box(Modifier.width(TIME_COLUMN).fillMaxHeight()) {
                     for (h in 1 until 24) {
                         Text(
@@ -212,12 +271,7 @@ fun WeekScreen(
                                 }
                                 drawLine(lineColor, Offset(0f, 0f), Offset(0f, size.height), strokeWidth = 1f)
                             }
-                            .pointerInput(d, hourHeight) {
-                                detectTapGestures { pos ->
-                                    val hour = (pos.y / hourHeight.toPx()).toInt().coerceIn(0, 23)
-                                    onCreateAt(d.atTime(hour, 0))
-                                }
-                            },
+
                     ) {
                         val colWidth = maxWidth
                         slots.forEach { slot ->
@@ -244,6 +298,28 @@ fun WeekScreen(
                         }
                     }
                 }
+            }
+            // Zeitwähler beim langen Drücken: Block für eine Stunde ab der gewählten Viertelstunde,
+            // Beschriftung über dem Daumen (bzw. darunter, wenn oben kein Platz ist).
+            picker?.let { (di, min) ->
+                val blockY = hourHeight * (min / 60f)
+                Box(
+                    Modifier.offset(x = TIME_COLUMN + dayWidth * di, y = blockY).width(dayWidth).height(hourHeight)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                        .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)),
+                )
+                val labelY = if (blockY > 64.dp) blockY - 56.dp else blockY + hourHeight + 8.dp
+                Box(Modifier.offset(y = labelY).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        "${PICKER_DAY.format(days[di])} · %02d:%02d".format(min / 60, min % 60),
+                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
             }
         }
         }
