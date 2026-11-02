@@ -24,6 +24,7 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Emulator noch Handy.
 - Arbeitsweise (Wunsch des Nutzers): Wünsche sammeln, auf dem Arbeitsbranch umsetzen (CI dort nur
   Test-Build), Release (= Merge nach `main`) erst auf Ansage.
+  Kleinigkeiten ohne eigenen Build stehen in `TODO.md` und werden mit dem nächsten Build abgearbeitet.
 
 ## Aufbau und Regeln
 
