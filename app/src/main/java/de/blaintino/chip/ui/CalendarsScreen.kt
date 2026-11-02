@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -65,12 +66,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Abos verwalten und auswählen, welche Kalender Chip anzeigt. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarsScreen(
     repo: CalendarRepository,
     version: Int,
     hidden: Set<Long>,
     onHiddenChange: (Set<Long>) -> Unit,
+    overviewHidden: Set<Long>,
+    onOverviewHiddenChange: (Set<Long>) -> Unit,
     onColorsChanged: () -> Unit,
     quickIds: List<Long?>,
     onQuickIdsChange: (List<Long?>) -> Unit,
@@ -224,7 +228,8 @@ fun CalendarsScreen(
         item { SectionLabel("In Chip anzeigen") }
         item {
             Text(
-                "Häkchen = in Chip anzeigen und für neue Termine wählbar; Farbpunkt antippen = Farbe ändern. " +
+                "Häkchen = in Chip anzeigen und für neue Termine wählbar; Farbpunkt antippen = Farbe ändern; " +
+                    "„Monat/Jahr“ aus = nur in Tag, Woche und Widget zeigen. " +
                     "Geteilte Google-Kalender erscheinen hier, sobald das Google-Konto sie synchronisiert. " +
                     "Fehlt einer: in den Kontoeinstellungen des Handys bzw. der Google-Kalender-App die Synchronisierung für ihn einschalten.",
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -263,6 +268,18 @@ fun CalendarsScreen(
                     if (!cal.writable) {
                         Text("nur lesen", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(8.dp))
+                    }
+                    // Auch in Monat und Jahr zeigen? (Wunsch des Nutzers: Stundenplan dort ausblenden.)
+                    if (cal.id !in hidden) {
+                        val inOverview = cal.id !in overviewHidden
+                        FilterChip(
+                            selected = inOverview,
+                            onClick = {
+                                onOverviewHiddenChange(if (inOverview) overviewHidden + cal.id else overviewHidden - cal.id)
+                            },
+                            label = { Text("Monat/Jahr", style = MaterialTheme.typography.labelSmall) },
+                        )
+                        Spacer(Modifier.width(4.dp))
                     }
                 }
             }

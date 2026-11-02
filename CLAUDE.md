@@ -33,6 +33,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 - **Datenquelle ist ausschließlich `CalendarContract`.** Google-Kalender (auch geteilte) kommen über
   das Google-Konto des Handys. Freigaben verwalten geht nur beim Anbieter, nicht in Chip.
 - Ausblenden (`HiddenCalendars`) gilt nur in Chip (App + Widget), nie `Calendars.VISIBLE` ändern.
+  Zusätzlich je Kalender „Monat/Jahr“ (`OverviewHiddenCalendars`, Wunsch des Nutzers: Stundenplan-Abo
+  überdeckte dort alles): aus = nur in Tag, Woche und Widget.
+- **Mehrtägige Termine** (Wunsch des Nutzers): `isSpanning()` = ganztägig über mehrere Tage oder ≥ 24 h
+  (Nachttermine bleiben im Raster). Woche/Tag: Leiste oben mit durchgehenden Balken über alle Tage
+  (`SpanLayout.lanes`, Tests `SpanLayoutTest`; runde Enden nur bei echtem Beginn/Ende, Tag zeigt „(k/n)“),
+  Monat: verbundene dünne Balken unten in den Zellen statt Punkten, Jahr: durchgehende Linie unter den Tagen.
 - Eigene Kalenderfarben (`CalendarColors`, Wunsch des Nutzers) nur in Chip: `CALENDAR_COLOR` darf nur
   der Sync-Adapter ändern (Google würde es überschreiben). Angewendet in `CalendarRepository`
   (`calendars()`/`instances()`); Termine mit eigener `EVENT_COLOR` behalten ihre Farbe.
