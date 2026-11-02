@@ -6,11 +6,11 @@ import android.database.ContentObserver
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.widget.Toast
 import android.provider.CalendarContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
@@ -21,7 +21,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -33,8 +37,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,7 +45,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,7 +63,6 @@ import de.blaintino.chip.data.HiddenCalendars
 import de.blaintino.chip.data.SubscriptionStore
 import de.blaintino.chip.sync.Background
 import de.blaintino.chip.sync.SubscriptionSync
-import de.blaintino.chip.ui.AgendaScreen
 import de.blaintino.chip.ui.CalendarsScreen
 import de.blaintino.chip.ui.ChipTheme
 import de.blaintino.chip.ui.EventDetails
@@ -109,11 +109,6 @@ class MainActivity : ComponentActivity() {
         intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
 }
 
-private const val TAB_AGENDA = 0
-/** Kalenderansicht Tag/Woche/Monat/Jahr (Vorgabe Woche): Pinch zoomt, Doppeltipp Woche ↔ Monat. */
-private const val TAB_GRID = 1
-private const val TAB_CALENDARS = 2
-private const val DOUBLE_TAP_MS = 400L
 private const val DAY_MS = 86_400_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,9 +144,9 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         return
     }
 
-    var tab by rememberSaveable { mutableIntStateOf(TAB_GRID) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    var zoomMenu by remember { mutableStateOf(false) }
     var zoom by rememberSaveable { mutableStateOf(CalendarZoom.WEEK) }
-    var lastGridTap by remember { mutableLongStateOf(0L) }
     var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var hidden by remember { mutableStateOf(HiddenCalendars.get(context)) }
     var version by remember { mutableIntStateOf(0) }
@@ -185,7 +180,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         }
         if (stale) Background.syncNow(context)
     }
-    LaunchedEffect(pendingWebcal) { if (pendingWebcal != null) tab = TAB_CALENDARS }
+    LaunchedEffect(pendingWebcal) { if (pendingWebcal != null) showSettings = true }
 
     fun openEvent(ev: EventInstance) {
         scope.launch {
@@ -195,7 +190,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         }
     }
 
-    // Im Editor wählbar: beschreibbar und unter „Kalender & Abos“ eingeschaltet (Wunsch des
+    // Im Editor wählbar: beschreibbar und in den Einstellungen eingeschaltet (Wunsch des
     // Nutzers). Beim Bearbeiten bleibt der bisherige Kalender des Termins immer wählbar.
     fun editorCalendars(currentId: Long?) =
         calendars.filter { it.writable && it.accountName != SubscriptionSync.ACCOUNT_NAME && (it.id !in hidden || it.id == currentId) }
@@ -210,7 +205,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         val cal = calendarId?.let { id -> calendars.firstOrNull { it.id == id && it.writable } }
             ?: choices.firstOrNull { it.name == it.accountName } ?: choices.firstOrNull()
         if (cal == null) {
-            Toast.makeText(context, "Kein beschreibbarer Kalender eingeschaltet (Tab „Kalender“)", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Kein beschreibbarer Kalender eingeschaltet (Einstellungen ⚙)", Toast.LENGTH_LONG).show()
             return
         }
         val zone = ZoneId.systemDefault()
@@ -228,20 +223,38 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         )
     }
 
+    // Einstellungen (früher Tab „Kalender“) als eigener Bildschirm über das Zahnrad; Zurück schließt ihn.
+    BackHandler(enabled = showSettings) { showSettings = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    if (showSettings) TextButton(onClick = { showSettings = false }) { Text("←", style = MaterialTheme.typography.titleLarge) }
+                },
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            when (tab) {
-                                TAB_AGENDA -> "Termine"
-                                TAB_GRID -> zoom.label
-                                else -> "Kalender & Abos"
-                            },
-                        )
-                        if (tab == TAB_GRID) {
-                            Spacer(Modifier.width(12.dp))
+                    if (showSettings) {
+                        Text("Einstellungen")
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Titel = aktuelle Ansicht; Antippen öffnet die Auswahl (Fallback zur Pinch-Geste).
+                            Box {
+                                TextButton(onClick = { zoomMenu = true }) {
+                                    Text("${zoom.label} ▾", style = MaterialTheme.typography.titleLarge)
+                                }
+                                DropdownMenu(expanded = zoomMenu, onDismissRequest = { zoomMenu = false }) {
+                                    CalendarZoom.entries.forEach { z ->
+                                        DropdownMenuItem(
+                                            text = { Text(z.label, fontWeight = if (z == zoom) FontWeight.Bold else FontWeight.Normal) },
+                                            onClick = {
+                                                zoom = z
+                                                zoomMenu = false
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.width(8.dp))
                             // Springt in der aktuellen Ansicht zu heute (Wunsch des Nutzers).
                             OutlinedButton(
                                 onClick = { selectedDay = LocalDate.now() },
@@ -251,39 +264,15 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                         }
                     }
                 },
+                actions = {
+                    if (!showSettings) {
+                        TextButton(onClick = { showSettings = true }) { Text("⚙", style = MaterialTheme.typography.headlineSmall) }
+                    }
+                },
             )
         },
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(selected = tab == TAB_AGENDA, onClick = { tab = TAB_AGENDA }, icon = { Text("☰") }, label = { Text("Termine") })
-                NavigationBarItem(
-                    selected = tab == TAB_GRID,
-                    onClick = {
-                        // Doppeltipp wechselt zwischen Woche und Monat.
-                        val now = SystemClock.uptimeMillis()
-                        if (tab == TAB_GRID && now - lastGridTap < DOUBLE_TAP_MS) {
-                            zoom = if (zoom == CalendarZoom.WEEK) CalendarZoom.MONTH else CalendarZoom.WEEK
-                        }
-                        lastGridTap = now
-                        tab = TAB_GRID
-                    },
-                    icon = {
-                        Text(
-                            when (zoom) {
-                                CalendarZoom.DAY -> "▯"
-                                CalendarZoom.WEEK -> "▥"
-                                CalendarZoom.MONTH -> "▦"
-                                CalendarZoom.YEAR -> "▩"
-                            },
-                        )
-                    },
-                    label = { Text(zoom.label) },
-                )
-                NavigationBarItem(selected = tab == TAB_CALENDARS, onClick = { tab = TAB_CALENDARS }, icon = { Text("◉") }, label = { Text("Kalender") })
-            }
-        },
         floatingActionButton = {
-            if (tab != TAB_CALENDARS) {
+            if (!showSettings) {
                 // Ein Plus je Schnellauswahl-Kalender in dessen Farbe; ohne Auswahl ein einfaches Plus.
                 val quick = quickIds.mapNotNull { id -> calendars.firstOrNull { it.id == id && it.writable } }
                 if (quick.isEmpty()) {
@@ -303,15 +292,36 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
             }
         },
     ) { padding ->
-        when (tab) {
-            TAB_AGENDA -> AgendaScreen(repo, version, hidden, padding, onEventClick = ::openEvent)
+        if (showSettings) {
+            CalendarsScreen(
+                repo = repo,
+                version = version,
+                hidden = hidden,
+                onHiddenChange = {
+                    hidden = it
+                    HiddenCalendars.set(context, it)
+                    scope.launch { TodayWidget.refresh(context) }
+                },
+                onColorsChanged = {
+                    version++
+                    scope.launch { TodayWidget.refresh(context) }
+                },
+                quickIds = quickIds,
+                onQuickIdsChange = {
+                    quickIds = it
+                    QuickAddCalendars.set(context, it)
+                },
+                prefillUrl = pendingWebcal,
+                onPrefillHandled = onWebcalHandled,
+                contentPadding = padding,
+            )
+        } else {
             // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber;
             // ein Finger waagerecht wischen = vorheriger/nächster Zeitraum.
-            TAB_GRID -> Box(
+            Box(
                 Modifier.fillMaxSize().calendarGestures(
                     onZoomIn = { zoom = zoom.zoomIn() },
                     onZoomOut = { zoom = zoom.zoomOut() },
-                    // Wischen nach links = nächster Tag/Woche/Monat/Jahr, nach rechts = vorheriger.
                     onSwipe = { selectedDay = zoom.shift(selectedDay, it) },
                 ),
             ) {
@@ -354,24 +364,6 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                     )
                 }
             }
-            else -> CalendarsScreen(
-                repo = repo,
-                version = version,
-                hidden = hidden,
-                onHiddenChange = {
-                    hidden = it
-                    HiddenCalendars.set(context, it)
-                    scope.launch { TodayWidget.refresh(context) }
-                },
-                quickIds = quickIds,
-                onQuickIdsChange = {
-                    quickIds = it
-                    QuickAddCalendars.set(context, it)
-                },
-                prefillUrl = pendingWebcal,
-                onPrefillHandled = onWebcalHandled,
-                contentPadding = padding,
-            )
         }
     }
 

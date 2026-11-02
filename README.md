@@ -8,7 +8,8 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 - **Termine aus allen Kalendern des Handys** (Android-Kalenderdatenbank `CalendarContract`): das
   Google-Konto synchronisiert eigene und **geteilte Google-Kalender** hinein. Freigaben selbst richtest
   du im Google Kalender ein, Chip zeigt und bearbeitet nur, was das Konto synchronisiert.
-- **Termine**: Liste der nächsten 90 Tage, nach Tagen gruppiert.
+- **Bedienung**: keine Tabs. Oben links die aktuelle Ansicht (Antippen = Auswahl Tag/Woche/Monat/Jahr),
+  daneben „Heute“, rechts das Zahnrad ⚙ für die Einstellungen (Kalender, Farben, Abos, Plus-Knöpfe, Widget).
 - **Woche** (Startansicht): Mo–So mit Stundenraster, ganztägige Termine oben, Überschneidungen
   nebeneinander, rote Linie für „jetzt“. **Lang drücken** im Raster (Tag/Woche) zeigt einen Zeitwähler
   unter dem Daumen: ziehen wählt Viertelstunde (und in der Woche den Tag), Loslassen öffnet den
@@ -18,20 +19,20 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   **Jahr** (12 kleine Monate, Tage mit Terminen markiert) ↔ **Monat** (Raster mit Farbpunkten, darunter
   die Termine des gewählten Tages) ↔ **Woche** ↔ **Tag** (wie die Woche, nur ein Tag, mit Ort).
   **Wischen** nach links/rechts blättert zum nächsten/vorherigen Tag, Woche, Monat oder Jahr.
-  **Doppeltipp auf den Tab** wechselt direkt zwischen Woche und Monat.
 - **Plus-Knöpfe**: je ein Plus für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
-  deren Farbe), änderbar unter „Kalender & Abos“ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
+  deren Farbe), änderbar unter ⚙ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
   heute zur nächsten vollen Stunde.
 - **Heute**: Knopf neben dem Titel (Tag/Woche/Monat/Jahr) springt in der aktuellen Ansicht zu heute.
 - **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
-  Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter „Kalender & Abos“
+  Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter ⚙
   eingeschaltet sind. Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum
   Bearbeiten in der Kalender-App des Kontos.
-- **ICS-Abos** (Tab „Kalender“): Web-Adresse (`https://` oder `webcal://`) eintragen, Name und Farbe
+- **ICS-Abos** (⚙): Web-Adresse (`https://` oder `webcal://`) eintragen, Name und Farbe
   wählen. Jedes Abo wird ein eigener, nur lesbarer Kalender auf dem Handy (nicht bei Google) und wird
   **täglich** aktualisiert, außerdem beim Öffnen der App, wenn das letzte Laden über einen Tag her
   ist, und von Hand. `webcal://`-Links aus dem Browser öffnen direkt den Abo-Dialog.
-- **Kalender ein-/ausblenden**: nur für Chip (App und Widget), ändert nichts am Konto.
+- **Kalender ein-/ausblenden und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
+  Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
 - **Widget „Heute“**: scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und Ort.
   Aktualisiert sich bei jeder Änderung in der Kalenderdatenbank und kurz nach Mitternacht.
 
@@ -48,7 +49,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 | `sync/SubscriptionSync.kt` | Abo-Kalender anlegen/löschen, herunterladen, Inhalt ersetzen |
 | `sync/Background.kt` | WorkManager: tägliches Abo-Update, Widget bei Änderungen/Mitternacht |
 | `widget/TodayWidget.kt` | Glance-Widget „Heute“ |
-| `ui/…` | Compose-Bildschirme: Termine, Woche, Monat, Kalender & Abos, Editor |
+| `ui/…` | Compose-Bildschirme: Tag/Woche, Monat, Jahr, Einstellungen (`CalendarsScreen`), Editor |
 | `ui/Zoom.kt` | Detailstufen Tag/Woche/Monat/Jahr und Pinch-Geste (Tests `CalendarZoomTest`) |
 | `ui/DayLayout.kt` | Spalten für sich überschneidende Termine in der Wochenansicht (Tests `DayLayoutTest`) |
 

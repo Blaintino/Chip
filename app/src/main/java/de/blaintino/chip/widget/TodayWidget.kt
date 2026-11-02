@@ -115,7 +115,7 @@ private sealed interface WidgetData {
     data class Failed(val message: String) : WidgetData
 }
 
-/** Letzter Stand des Widgets (Zeit + Text), angezeigt im Tab „Kalender“ zur Fehlersuche ohne adb. */
+/** Letzter Stand des Widgets (Zeit + Text), angezeigt in den Einstellungen (⚙) zur Fehlersuche ohne adb. */
 object WidgetStatus {
     private const val PREFS = "widget"
 
