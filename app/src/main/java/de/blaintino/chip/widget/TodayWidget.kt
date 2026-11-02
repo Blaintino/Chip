@@ -45,6 +45,7 @@ import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.Formats
 import de.blaintino.chip.data.HiddenCalendars
 import de.blaintino.chip.data.QuickAddCalendars
+import de.blaintino.chip.NewEventIntents
 import de.blaintino.chip.QuaelgeistActivity
 import androidx.glance.LocalContext
 import androidx.glance.action.Action
