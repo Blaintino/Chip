@@ -16,8 +16,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
-- Zuletzt auf dem Handy bestätigt: v51 (2026-11-02; Wischen/Pinch mit Rückmeldung, Zoom zum Tag unter
-  den Fingern, Wetter-Pille, Heute-Knopf mittig).
+- Zuletzt auf dem Handy bestätigt: v55 (2026-11-02; mehrtägige Termine, Monat/Jahr-Schalter, Monatsfix;
+  davor v51: Wischen/Pinch mit Rückmeldung, Zoom zum Tag unter den Fingern, Wetter-Pille, Heute-Knopf mittig).
 - Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v27, 2026-11-02; Widget ohne Kopfzeile nur mit
   anstehenden Terminen, Plus-Knöpfe nebeneinander; davor v21): Kalender, Woche/Tag/
   Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
@@ -120,7 +120,7 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Vermutung (nicht belegt): vor App-Updates platzierte Widgets wurden nicht neu angestoßen. Deshalb
   zeichnet `UpdateReceiver` (MY_PACKAGE_REPLACED, BOOT_COMPLETED) und jeder App-Start das Widget neu.
 - **Wetter im Widget** (Wunsch des Nutzers): eigene schwarze Pille (`WeatherPill`, so breit wie der Text,
-  mittig, 36 dp hoch wie die Knöpfe) über der Terminfläche bzw. ohne Termine über den Knöpfen (Antippen öffnet Chip), **kein Wettersymbol** (gab es kurz, v40–v42;
+  mittig, 40 dp hoch, Schrift 16 sp) über der Terminfläche bzw. ohne Termine über den Knöpfen (Antippen öffnet Chip), **kein Wettersymbol** (gab es kurz, v40–v42;
   vom Nutzer wieder gestrichen: stündlicher WMO-Code nicht eindeutig einem Zeitraum zuzuordnen, zeigte
   Regen, wo andere Apps keinen sahen), aktuelle Temperatur (stündliche Vorhersage der laufenden
   Stunde), Höchst-/Tiefstwert und Regenhinweis (`WeatherText`,
