@@ -16,7 +16,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
-- Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v21, 2026-11-02): Kalender, Woche/Tag/
+- Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v27, 2026-11-02; Widget ohne Kopfzeile nur mit
+  anstehenden Terminen, Plus-Knöpfe nebeneinander; davor v21): Kalender, Woche/Tag/
   Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
   Kalenderfarben, Widget mit Knöpfen (auch „+ Quälgeist“ mit Quälgeist v49), ICS-Abo hinzufügen und
   laden. Tägliche Abo-Aktualisierung im Hintergrund noch nicht beobachtet. Cloud-Sessions haben weder
@@ -76,12 +77,15 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   - Zeitzonen: IANA-Name, Mozilla-Präfix, Windows-Name (ICU), sonst `X-WR-TIMEZONE`, sonst Gerät.
   - WorkManager: täglich mit Netz (`Background.schedule`, auch bei jedem App-Start), beim Öffnen
     nachholen, wenn ein Abo über einen Tag alt ist.
-- **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), reines Schwarz als Hintergrund, feste helle Schrift (Wunsch des Nutzers),
+- **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), Widget durchsichtig mit reinem Schwarz
+  nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe, dann **oben** (Wunsch des Nutzers; mit Terminen unten; kein Hinweistext; ein Widget kann
+  seine Größe nicht selbst ändern), feste helle Schrift (Wunsch des Nutzers),
   scrollbare Liste mit Uhrzeit, Titel, Ort; **nur laufende und kommende Termine** (Wunsch des Nutzers,
   `WidgetFilter`, Tests `WidgetFilterTest`; ganztägige bleiben), Neuzeichnen zum nächsten Terminende
   (`Background.scheduleWidgetRefreshAt`, WorkManager, kann im Doze-Modus etwas später kommen). Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
   (öffnen `MainActivity` mit `NewEventIntents`, eigene Daten-URI je Kalender gegen zusammengelegte
-  PendingIntents) und „+ Quälgeist“ über das Sprungbrett `QuaelgeistActivity`: Aktion
+  PendingIntents) und „+ Quälgeist“ (Farbe `GlanceTheme.colors.primary` = Material-You-Hauptfarbe wie die Überschriften
+  und Heute-Markierung in der App, Wunsch des Nutzers) über das Sprungbrett `QuaelgeistActivity`: Aktion
   `de.quaelgeist.action.QUICK_ADD` (Quälgeist, dann Beta), sonst Quälgeist starten, sonst Hinweis;
   `<queries>` für beide Pakete im Manifest. Neu zeichnen über `TodayWidget.refresh`: nach eigenen Änderungen,
   nach Abo-Updates, bei jeder Änderung in der Kalenderdatenbank (WorkManager-Content-URI-Auslöser,

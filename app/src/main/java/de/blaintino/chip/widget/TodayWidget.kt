@@ -162,70 +162,86 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 private val BG = Color.Black
 private val TEXT = ColorProvider(Color.White)
 private val TEXT_DIM = ColorProvider(Color(0xFFB0B0B0))
-private val QUAELGEIST_COLOR = Color(0xFF5F6368)
 
 @Composable
 private fun WidgetContent(today: LocalDate, state: WidgetData) {
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(BG)
-            .cornerRadius(16.dp)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        // Keine Kopfzeile (Wunsch des Nutzers): Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
-        Box(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
-            when (state) {
-                WidgetData.Loading -> Hint("Lädt …")
-                WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
-                is WidgetData.Failed -> Hint("Fehler: ${state.message}")
-                is WidgetData.Loaded -> if (state.events.isEmpty()) {
-                    Hint("Keine weiteren Termine heute")
-                } else {
-                    // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
-                    val indexed = state.events.withIndex().toList()
-                    LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                        items(indexed, itemId = { it.index.toLong() }) { item ->
-                            EventLine(item.value, today)
+    // Widget selbst durchsichtig; nur der Terminbereich ist schwarz. Ohne anstehende Termine bleibt nur
+    // die Knopfreihe sichtbar (Wunsch des Nutzers: Größe kann ein Widget nicht selbst ändern).
+    // Keine Kopfzeile: Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
+    // Ohne anstehende Termine stehen die Knöpfe oben (Wunsch des Nutzers), sonst unter den Terminen.
+    Column(modifier = GlanceModifier.fillMaxSize()) {
+        val empty = state is WidgetData.Loaded && state.events.isEmpty()
+        val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
+        if (empty) {
+            ButtonRow(quick)
+        } else {
+            Box(
+                modifier = GlanceModifier.defaultWeight().fillMaxWidth().background(BG).cornerRadius(16.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                when (state) {
+                    WidgetData.Loading -> Hint("Lädt …")
+                    WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
+                    is WidgetData.Failed -> Hint("Fehler: ${state.message}")
+                    is WidgetData.Loaded -> {
+                        // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
+                        val indexed = state.events.withIndex().toList()
+                        LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+                            items(indexed, itemId = { it.index.toLong() }) { item ->
+                                EventLine(item.value, today)
+                            }
                         }
                     }
                 }
             }
-        }
-        // Knöpfe: die Plus-Knöpfe der App (gleiche Kalender und Farben) und ein neuer Quälgeist.
-        val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
-        Spacer(GlanceModifier.height(6.dp))
-        Row(modifier = GlanceModifier.fillMaxWidth()) {
-            quick.forEach { q ->
-                WidgetButton(
-                    label = "+ ${q.name}",
-                    color = Color(q.color),
-                    action = actionStartActivity(NewEventIntents.forCalendar(LocalContext.current, q.calendarId)),
-                    modifier = GlanceModifier.defaultWeight(),
-                )
-                Spacer(GlanceModifier.width(6.dp))
-            }
-            WidgetButton(
-                label = "+ Quälgeist",
-                color = QUAELGEIST_COLOR,
-                action = actionStartActivity<QuaelgeistActivity>(),
-                modifier = GlanceModifier.defaultWeight(),
-            )
+            Spacer(GlanceModifier.height(6.dp))
+            ButtonRow(quick)
         }
     }
 }
 
+/** Plus-Knöpfe der App (gleiche Kalender und Farben) und ein neuer Quälgeist. */
 @Composable
-private fun WidgetButton(label: String, color: Color, action: Action, modifier: GlanceModifier) {
-    val fg = if (color.luminance() > 0.5f) Color.Black else Color.White
+private fun ButtonRow(quick: List<QuickButton>) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        quick.forEach { q ->
+            val bg = Color(q.color)
+            WidgetButton(
+                label = "+ ${q.name}",
+                background = ColorProvider(bg),
+                content = ColorProvider(if (bg.luminance() > 0.5f) Color.Black else Color.White),
+                action = actionStartActivity(NewEventIntents.forCalendar(LocalContext.current, q.calendarId)),
+                modifier = GlanceModifier.defaultWeight(),
+            )
+            Spacer(GlanceModifier.width(6.dp))
+        }
+        // Gleiche Hauptfarbe wie die Überschriften und die Heute-Markierung in Chip (Material You).
+        WidgetButton(
+            label = "+ Quälgeist",
+            background = GlanceTheme.colors.primary,
+            content = GlanceTheme.colors.onPrimary,
+            action = actionStartActivity<QuaelgeistActivity>(),
+            modifier = GlanceModifier.defaultWeight(),
+        )
+    }
+}
+
+@Composable
+private fun WidgetButton(
+    label: String,
+    background: ColorProvider,
+    content: ColorProvider,
+    action: Action,
+    modifier: GlanceModifier,
+) {
     Box(
-        modifier = modifier.height(36.dp).cornerRadius(18.dp).background(color).clickable(action),
+        modifier = modifier.height(36.dp).cornerRadius(18.dp).background(background).clickable(action),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             maxLines = 1,
-            style = TextStyle(color = ColorProvider(fg), fontWeight = FontWeight.Medium, fontSize = 13.sp),
+            style = TextStyle(color = content, fontWeight = FontWeight.Medium, fontSize = 13.sp),
         )
     }
 }
