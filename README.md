@@ -34,7 +34,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 - **Kalender ein-/ausblenden und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
   Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
 - **Wetter im Widget** (⚙ → „Wetter im Widget“, Ort per Namenssuche, keine Standort-Berechtigung):
-  Höchst-/Tiefstwert von heute und Regenhinweis (ab 40 % für den Rest des Tages, z. B. „☂ ab 15 Uhr
+  aktuelle Temperatur, Höchst-/Tiefstwert von heute und Regenhinweis (ab 40 % für den Rest des Tages, z. B. „☂ ab 15 Uhr
   (70 %)“), stündlich aktualisiert. Daten: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
 - **Widget „Heute“**: ohne Kopfzeile, schwarze Fläche nur hinter den Terminen (ohne Termine bleiben nur die Knöpfe, dann oben), scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
   Ort, nur laufende und kommende (vergangene verschwinden zum Terminende, ganztägige bleiben); unten die Plus-Knöpfe der App (gleiche Kalender und Farben, öffnen „Neuer Termin“) und

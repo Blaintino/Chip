@@ -102,7 +102,8 @@ class TodayWidget : GlanceAppWidget() {
             WidgetStatus.record(context, "${events.size} anstehende Termine geladen")
             // Wetterzeile (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis für den Rest des Tages.
             val weather = Weather.today(context, allowFetch = true)?.let { day ->
-                listOfNotNull(WeatherText.temperatures(day), WeatherText.rainHint(day, LocalDateTime.now()))
+                val now = LocalDateTime.now()
+                listOfNotNull(WeatherText.current(day, now), WeatherText.temperatures(day), WeatherText.rainHint(day, now))
                     .joinToString("   ").ifBlank { null }
             }
             WidgetData.Loaded(events, quick, weather)

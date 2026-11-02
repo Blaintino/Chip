@@ -20,6 +20,8 @@ data class WeatherDay(
     val max: Double?,
     val min: Double?,
     val hourlyRain: List<Pair<LocalDateTime, Int>>,
+    /** Temperatur je Stunde (für „jetzt“). */
+    val hourlyTemp: List<Pair<LocalDateTime, Double>> = emptyList(),
 )
 
 /**
@@ -70,12 +72,12 @@ object Weather {
         var body = prefs.getString("body", null)
         val fetchedAt = prefs.getLong("fetchedAt", 0)
         val stale = body == null || System.currentTimeMillis() - fetchedAt > MAX_AGE_MS ||
-            parseDay(body, now.toLocalDate()) == null
+            parseDay(body, now.toLocalDate())?.hourlyTemp.isNullOrEmpty()
         if (stale && allowFetch) {
             try {
                 body = get(
                     "https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}" +
-                        "&daily=temperature_2m_max,temperature_2m_min&hourly=precipitation_probability" +
+                        "&daily=temperature_2m_max,temperature_2m_min&hourly=precipitation_probability,temperature_2m" +
                         "&timezone=auto&forecast_days=2",
                 )
                 prefs.edit().putString("body", body).putLong("fetchedAt", System.currentTimeMillis()).commit()
@@ -97,6 +99,11 @@ object Weather {
             val hourly = json.optJSONObject("hourly")
             val hours = hourly?.optJSONArray("time") ?: JSONArray()
             val probs = hourly?.optJSONArray("precipitation_probability") ?: JSONArray()
+            val temps = hourly?.optJSONArray("temperature_2m") ?: JSONArray()
+            val times = (0 until hours.length()).map { i -> runCatching { LocalDateTime.parse(hours.getString(i)) }.getOrNull() }
+            val temp = times.mapIndexedNotNull { i, t ->
+                if (t == null || t.toLocalDate() != date || i >= temps.length() || temps.isNull(i)) null else t to temps.optDouble(i)
+            }
             val rain = (0 until hours.length()).mapNotNull { i ->
                 val t = runCatching { LocalDateTime.parse(hours.getString(i)) }.getOrNull() ?: return@mapNotNull null
                 if (t.toLocalDate() != date || probs.isNull(i)) null else t to probs.optInt(i)
@@ -106,6 +113,7 @@ object Weather {
                 max = daily.optJSONArray("temperature_2m_max")?.optDoubleOrNull(idx),
                 min = daily.optJSONArray("temperature_2m_min")?.optDoubleOrNull(idx),
                 hourlyRain = rain,
+                hourlyTemp = temp,
             )
         }
     } catch (_: Exception) {
@@ -132,6 +140,11 @@ object Weather {
 object WeatherText {
     /** Ab dieser Regenwahrscheinlichkeit (Prozent) gibt es einen Hinweis. */
     const val RAIN_THRESHOLD = 40
+
+    /** Temperatur der laufenden Stunde, z. B. „11°“. */
+    fun current(day: WeatherDay, now: LocalDateTime): String? =
+        day.hourlyTemp.firstOrNull { (t, _) -> t.toLocalDate() == now.toLocalDate() && t.hour == now.hour }
+            ?.second?.let { "${it.roundToInt()}°" }
 
     fun temperatures(day: WeatherDay): String? {
         val max = day.max?.roundToInt() ?: return null

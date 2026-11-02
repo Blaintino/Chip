@@ -19,6 +19,13 @@ class WeatherTextTest {
     }
 
     @Test
+    fun `aktuelle Temperatur aus der laufenden Stunde`() {
+        val d = day().copy(hourlyTemp = listOf(date.atTime(10, 0) to 9.4, date.atTime(11, 0) to 10.6))
+        assertEquals("11°", WeatherText.current(d, LocalDateTime.of(2026, 11, 2, 11, 40)))
+        assertNull(WeatherText.current(d, LocalDateTime.of(2026, 11, 2, 12, 5)))
+    }
+
+    @Test
     fun `Regen ab der ersten Stunde über der Schwelle, Prozent = Höchstwert danach`() {
         val rain = IntArray(24) { 10 }.also { it[15] = 45; it[17] = 80; it[9] = 90 }
         // 9 Uhr ist schon vorbei (jetzt 11:20), zählt nicht mehr.
