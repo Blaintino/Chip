@@ -8,21 +8,28 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 - Toolchain wie `android-vorlage` (Monorepo `Claude_Code_Projekte`): Gradle 9.8, AGP 9.4 mit
   eingebautem Kotlin (kein `org.jetbrains.kotlin.android`-Plugin, nur
   `org.jetbrains.kotlin.plugin.compose`), Versionen in `gradle/libs.versions.toml`, JDK 21.
-- Befehle: `./gradlew testDebugUnitTest lintDebug assembleDebug`. Unit-Tests: `IcsTest` (ICS-Leser
-  und -Umsetzung, reines Kotlin, Zeitzone im Test fest `Europe/Berlin`).
+- Befehle: `./gradlew testDebugUnitTest lintDebug assembleDebug`. Unit-Tests: `IcsTest`, `DayLayoutTest` (ICS-Leser
+  und -Umsetzung, Spalten der Wochenansicht, reines Kotlin, Zeitzone im Test fest `Europe/Berlin`).
 - `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK aus den Secrets
   `ANDROID_KEYSTORE_BASE64` usw. (gleicher Keystore wie Quälgeist), nur auf `main` mit Secrets ein
   Release `v<run_number>` (eigenes Repo, daher ohne App-Präfix; Obtainium ohne Filter). Ohne Secrets Debug-APK mit Warnung. Nie auf
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
-- Auf einem echten Gerät noch nicht getestet (Cloud-Sessions haben weder Emulator noch Handy).
+- Auf dem Handy installiert (v6, 2026-11-02): Kalender werden angezeigt. Abos, Widget und Editor
+  dort noch nicht bestätigt. Cloud-Sessions haben weder Emulator noch Handy.
 
 ## Aufbau und Regeln
 
 - **Datenquelle ist ausschließlich `CalendarContract`.** Google-Kalender (auch geteilte) kommen über
   das Google-Konto des Handys. Freigaben verwalten geht nur beim Anbieter, nicht in Chip.
 - Ausblenden (`HiddenCalendars`) gilt nur in Chip (App + Widget), nie `Calendars.VISIBLE` ändern.
+  Im Editor sind nur beschreibbare **und** eingeschaltete Kalender wählbar (Wunsch des Nutzers,
+  `editorCalendars`); beim Bearbeiten bleibt der bisherige Kalender des Termins wählbar.
+- Ansichten (Wunsch des Nutzers): Start-Tab ist die **Woche** (`WeekScreen`, Stundenraster,
+  Überschneidungen über `DayLayout`, Tests `DayLayoutTest`). **Doppeltipp** auf den Tab
+  Woche/Monat wechselt zwischen Woche und Monat (`monthMode`). Tippen auf eine freie Stelle im
+  Raster legt dort einen Termin an.
 - Bearbeiten nur für Einzeltermine in beschreibbaren Kalendern (`CAL_ACCESS_CONTRIBUTOR`+).
   Serien (RRULE/RDATE) bewusst nur lesend mit Sprung in die Kalender-App (`EventDetails`) – das
   Ändern einzelner Serientermine braucht Ausnahme-Zeilen und ist ein eigener Schritt.
@@ -53,5 +60,5 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 ## Mögliche nächste Schritte (nur auf Nachfrage)
 
 - Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
-- Wochenansicht, Serien bearbeiten, Erinnerungen setzen, Teilnehmer einladen.
+- Serien bearbeiten, Erinnerungen setzen, Teilnehmer einladen.
 - Eigenes App-Icon.

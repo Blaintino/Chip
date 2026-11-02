@@ -6,6 +6,8 @@ import android.database.ContentObserver
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.widget.Toast
 import android.provider.CalendarContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -30,6 +32,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,6 +57,7 @@ import de.blaintino.chip.ui.ChipTheme
 import de.blaintino.chip.ui.EventDetails
 import de.blaintino.chip.ui.EventEditor
 import de.blaintino.chip.ui.MonthScreen
+import de.blaintino.chip.ui.WeekScreen
 import de.blaintino.chip.widget.TodayWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -89,8 +93,10 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val TAB_AGENDA = 0
-private const val TAB_MONTH = 1
+/** Kalenderansicht: Woche (Vorgabe) oder Monat, Wechsel per Doppeltipp auf den Tab. */
+private const val TAB_GRID = 1
 private const val TAB_CALENDARS = 2
+private const val DOUBLE_TAP_MS = 400L
 private const val DAY_MS = 86_400_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,7 +132,9 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         return
     }
 
-    var tab by rememberSaveable { mutableIntStateOf(TAB_AGENDA) }
+    var tab by rememberSaveable { mutableIntStateOf(TAB_GRID) }
+    var monthMode by rememberSaveable { mutableStateOf(false) }
+    var lastGridTap by remember { mutableLongStateOf(0L) }
     var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var hidden by remember { mutableStateOf(HiddenCalendars.get(context)) }
     var version by remember { mutableIntStateOf(0) }
@@ -162,14 +170,22 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         }
     }
 
-    fun newEvent() {
-        val writable = calendars.filter { it.writable && it.accountName != SubscriptionSync.ACCOUNT_NAME && it.id !in hidden }
-            .ifEmpty { calendars.filter { it.writable && it.accountName != SubscriptionSync.ACCOUNT_NAME } }
+    // Im Editor wählbar: beschreibbar und unter „Kalender & Abos“ eingeschaltet (Wunsch des
+    // Nutzers). Beim Bearbeiten bleibt der bisherige Kalender des Termins immer wählbar.
+    fun editorCalendars(currentId: Long?) =
+        calendars.filter { it.writable && it.accountName != SubscriptionSync.ACCOUNT_NAME && (it.id !in hidden || it.id == currentId) }
+
+    fun newEvent(at: LocalDateTime? = null) {
+        val choices = editorCalendars(null)
         // Bevorzugt der Hauptkalender eines Kontos (Name = Kontoname, bei Google die Mailadresse).
-        val cal = writable.firstOrNull { it.name == it.accountName } ?: writable.firstOrNull() ?: return
+        val cal = choices.firstOrNull { it.name == it.accountName } ?: choices.firstOrNull()
+        if (cal == null) {
+            Toast.makeText(context, "Kein beschreibbarer Kalender eingeschaltet (Tab „Kalender“)", Toast.LENGTH_LONG).show()
+            return
+        }
         val zone = ZoneId.systemDefault()
         val now = LocalDateTime.now(zone)
-        val start = if (selectedDay == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+        val start = at ?: if (selectedDay == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
         else selectedDay.atTime(9, 0)
         editing = EventDraft(
             id = null,
@@ -190,7 +206,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                     Text(
                         when (tab) {
                             TAB_AGENDA -> "Termine"
-                            TAB_MONTH -> "Monat"
+                            TAB_GRID -> if (monthMode) "Monat" else "Woche"
                             else -> "Kalender & Abos"
                         },
                     )
@@ -200,7 +216,18 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(selected = tab == TAB_AGENDA, onClick = { tab = TAB_AGENDA }, icon = { Text("☰") }, label = { Text("Termine") })
-                NavigationBarItem(selected = tab == TAB_MONTH, onClick = { tab = TAB_MONTH }, icon = { Text("▦") }, label = { Text("Monat") })
+                NavigationBarItem(
+                    selected = tab == TAB_GRID,
+                    onClick = {
+                        // Doppeltipp wechselt zwischen Woche und Monat.
+                        val now = SystemClock.uptimeMillis()
+                        if (tab == TAB_GRID && now - lastGridTap < DOUBLE_TAP_MS) monthMode = !monthMode
+                        lastGridTap = now
+                        tab = TAB_GRID
+                    },
+                    icon = { Text(if (monthMode) "▦" else "▥") },
+                    label = { Text(if (monthMode) "Monat" else "Woche") },
+                )
                 NavigationBarItem(selected = tab == TAB_CALENDARS, onClick = { tab = TAB_CALENDARS }, icon = { Text("◉") }, label = { Text("Kalender") })
             }
         },
@@ -212,12 +239,22 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     ) { padding ->
         when (tab) {
             TAB_AGENDA -> AgendaScreen(repo, version, hidden, padding, onEventClick = ::openEvent)
-            TAB_MONTH -> MonthScreen(
-                repo, version, hidden, selectedDay,
-                onSelect = { selectedDay = it },
-                contentPadding = padding,
-                onEventClick = ::openEvent,
-            )
+            TAB_GRID -> if (monthMode) {
+                MonthScreen(
+                    repo, version, hidden, selectedDay,
+                    onSelect = { selectedDay = it },
+                    contentPadding = padding,
+                    onEventClick = ::openEvent,
+                )
+            } else {
+                WeekScreen(
+                    repo, version, hidden, selectedDay,
+                    onSelect = { selectedDay = it },
+                    contentPadding = padding,
+                    onEventClick = ::openEvent,
+                    onCreateAt = { newEvent(it) },
+                )
+            }
             else -> CalendarsScreen(
                 repo = repo,
                 version = version,
@@ -237,7 +274,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     editing?.let { draft ->
         EventEditor(
             draft = draft,
-            calendars = calendars.filter { it.writable && it.accountName != SubscriptionSync.ACCOUNT_NAME },
+            calendars = editorCalendars(draft.id?.let { draft.calendarId }),
             onDismiss = { editing = null },
             onSave = { updated ->
                 editing = null

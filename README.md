@@ -9,9 +9,13 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   Google-Konto synchronisiert eigene und **geteilte Google-Kalender** hinein. Freigaben selbst richtest
   du im Google Kalender ein, Chip zeigt und bearbeitet nur, was das Konto synchronisiert.
 - **Termine**: Liste der nächsten 90 Tage, nach Tagen gruppiert.
-- **Monat**: Monatsraster mit Farbpunkten, darunter die Termine des gewählten Tages.
+- **Woche** (Startansicht): Mo–So mit Stundenraster, ganztägige Termine oben, Überschneidungen
+  nebeneinander, rote Linie für „jetzt“. Tippen auf eine freie Stelle legt dort einen Termin an.
+  **Doppeltipp auf den Tab „Woche“** wechselt zur **Monatsansicht** (Raster mit Farbpunkten, darunter
+  die Termine des gewählten Tages) und zurück.
 - **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
-  Beginn/Ende, Notiz). Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum
+  Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter „Kalender & Abos“
+  eingeschaltet sind. Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum
   Bearbeiten in der Kalender-App des Kontos.
 - **ICS-Abos** (Tab „Kalender“): Web-Adresse (`https://` oder `webcal://`) eintragen, Name und Farbe
   wählen. Jedes Abo wird ein eigener, nur lesbarer Kalender auf dem Handy (nicht bei Google) und wird
@@ -34,7 +38,8 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 | `sync/SubscriptionSync.kt` | Abo-Kalender anlegen/löschen, herunterladen, Inhalt ersetzen |
 | `sync/Background.kt` | WorkManager: tägliches Abo-Update, Widget bei Änderungen/Mitternacht |
 | `widget/TodayWidget.kt` | Glance-Widget „Heute“ |
-| `ui/…` | Compose-Bildschirme: Termine, Monat, Kalender & Abos, Editor |
+| `ui/…` | Compose-Bildschirme: Termine, Woche, Monat, Kalender & Abos, Editor |
+| `ui/DayLayout.kt` | Spalten für sich überschneidende Termine in der Wochenansicht (Tests `DayLayoutTest`) |
 
 ## Bauen
 
