@@ -45,6 +45,9 @@ import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.Formats
 import de.blaintino.chip.data.HiddenCalendars
 import de.blaintino.chip.data.QuickAddCalendars
+import de.blaintino.chip.weather.Weather
+import de.blaintino.chip.weather.WeatherText
+import java.time.LocalDateTime
 import de.blaintino.chip.NewEventIntents
 import de.blaintino.chip.QuaelgeistActivity
 import androidx.glance.LocalContext
@@ -97,7 +100,13 @@ class TodayWidget : GlanceAppWidget() {
                 calendars.firstOrNull { it.id == id && it.writable }?.let { QuickButton(it.id, it.name, it.color) }
             }
             WidgetStatus.record(context, "${events.size} anstehende Termine geladen")
-            WidgetData.Loaded(events, quick)
+            // Wetterzeile (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis für den Rest des Tages.
+            val weather = Weather.today(context, allowFetch = true)?.let { day ->
+                val now = LocalDateTime.now()
+                listOfNotNull(WeatherText.current(day, now), WeatherText.temperatures(day), WeatherText.rainHint(day, now))
+                    .joinToString("   ").ifBlank { null }
+            }
+            WidgetData.Loaded(events, quick, weather)
         }
     } catch (e: Exception) {
         Log.e(TAG, "Widget konnte nicht laden", e)
@@ -128,7 +137,7 @@ private data class QuickButton(val calendarId: Long, val name: String, val color
 private sealed interface WidgetData {
     data object Loading : WidgetData
     data object NoPermission : WidgetData
-    data class Loaded(val events: List<EventInstance>, val quick: List<QuickButton>) : WidgetData
+    data class Loaded(val events: List<EventInstance>, val quick: List<QuickButton>, val weather: String?) : WidgetData
     data class Failed(val message: String) : WidgetData
 }
 
@@ -172,7 +181,16 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
         val empty = state is WidgetData.Loaded && state.events.isEmpty()
         val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
+        val weather = (state as? WidgetData.Loaded)?.weather
         if (empty) {
+            // Ohne Termine: Wetter als eigene kleine Fläche über den Knöpfen.
+            if (weather != null) {
+                Box(
+                    modifier = GlanceModifier.fillMaxWidth().background(BG).cornerRadius(16.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                ) { WeatherLine(weather) }
+                Spacer(GlanceModifier.height(6.dp))
+            }
             ButtonRow(quick)
         } else {
             Box(
@@ -183,7 +201,11 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
                     WidgetData.Loading -> Hint("Lädt …")
                     WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
                     is WidgetData.Failed -> Hint("Fehler: ${state.message}")
-                    is WidgetData.Loaded -> {
+                    is WidgetData.Loaded -> Column(modifier = GlanceModifier.fillMaxSize()) {
+                        if (weather != null) {
+                            WeatherLine(weather)
+                            Spacer(GlanceModifier.height(4.dp))
+                        }
                         // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
                         val indexed = state.events.withIndex().toList()
                         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
@@ -244,6 +266,11 @@ private fun WidgetButton(
             style = TextStyle(color = content, fontWeight = FontWeight.Medium, fontSize = 13.sp),
         )
     }
+}
+
+@Composable
+private fun WeatherLine(text: String) {
+    Text(text = text, maxLines = 1, style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp))
 }
 
 @Composable

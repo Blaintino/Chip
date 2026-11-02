@@ -56,6 +56,10 @@ import de.blaintino.chip.data.SubscriptionStore
 import de.blaintino.chip.sync.SubscriptionSync
 import de.blaintino.chip.widget.TodayWidget
 import de.blaintino.chip.widget.WidgetStatus
+import de.blaintino.chip.weather.Weather
+import de.blaintino.chip.weather.WeatherPlace
+import de.blaintino.chip.weather.WeatherText
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -192,6 +196,11 @@ fun CalendarsScreen(
                     )
                 }
             }
+        }
+
+        item { SectionLabel("Wetter im Widget") }
+        item {
+            WeatherSettings(onChanged = { scope.launch { TodayWidget.refresh(context) } })
         }
 
         item { SectionLabel("Widget „Heute“") }
@@ -452,5 +461,83 @@ private fun QuickSlotPicker(
                 }
             }
         }
+    }
+}
+
+/**
+ * Ort fürs Wetter (Wunsch des Nutzers: selbst angeben, keine Standort-Berechtigung). Suche nach Namen
+ * über Open-Meteo, Auswahl aus der Trefferliste; „Wetter aus“ entfernt die Zeile im Widget.
+ */
+@Composable
+private fun WeatherSettings(onChanged: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var place by remember { mutableStateOf(Weather.place(context)) }
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<WeatherPlace>>(emptyList()) }
+    var status by remember { mutableStateOf<String?>(null) }
+
+    fun search() {
+        if (query.isBlank()) return
+        status = "Suche …"
+        scope.launch {
+            try {
+                results = withContext(Dispatchers.IO) { Weather.search(query) }
+                status = if (results.isEmpty()) "Kein Ort gefunden" else null
+            } catch (e: Exception) {
+                status = "Suche fehlgeschlagen: ${e.message}"
+            }
+        }
+    }
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            place?.let { "Ort: ${it.name}" } ?: "Kein Ort gewählt – das Widget zeigt kein Wetter.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Ort suchen") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { search() }),
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = ::search) { Text("Suchen") }
+        }
+        status?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        results.forEach { r ->
+            Text(
+                r.name,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable {
+                    Weather.setPlace(context, r)
+                    place = r
+                    results = emptyList()
+                    query = ""
+                    status = "Wetter wird geladen …"
+                    scope.launch {
+                        withContext(Dispatchers.IO) { Weather.today(context, allowFetch = true) }
+                        status = null
+                        onChanged()
+                    }
+                }.padding(vertical = 8.dp, horizontal = 4.dp),
+            )
+        }
+        if (place != null) {
+            TextButton(onClick = {
+                Weather.setPlace(context, null)
+                place = null
+                onChanged()
+            }) { Text("Wetter aus") }
+        }
+        Text(
+            "Höchst-/Tiefstwert und Regenhinweis ab ${WeatherText.RAIN_THRESHOLD} % für den Rest des Tages, stündlich aktualisiert. " +
+                "Wetterdaten: Open-Meteo.com (CC BY 4.0). Übertragen werden nur die Koordinaten des gewählten Orts.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

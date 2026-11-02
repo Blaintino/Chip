@@ -33,6 +33,9 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   ist, und von Hand. `webcal://`-Links aus dem Browser öffnen direkt den Abo-Dialog.
 - **Kalender ein-/ausblenden und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
   Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
+- **Wetter im Widget** (⚙ → „Wetter im Widget“, Ort per Namenssuche, keine Standort-Berechtigung):
+  aktuelle Temperatur, Höchst-/Tiefstwert von heute und Regenhinweis (ab 40 % für den Rest des Tages, z. B. „☂ ab 15 Uhr
+  (70 %)“), stündlich aktualisiert. Daten: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
 - **Widget „Heute“**: ohne Kopfzeile, schwarze Fläche nur hinter den Terminen (ohne Termine bleiben nur die Knöpfe, dann oben), scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
   Ort, nur laufende und kommende (vergangene verschwinden zum Terminende, ganztägige bleiben); unten die Plus-Knöpfe der App (gleiche Kalender und Farben, öffnen „Neuer Termin“) und
   „+ Quälgeist“ (öffnet die Schnelleingabe von Quälgeist, falls dort freigegeben, sonst Quälgeist).
@@ -50,6 +53,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 | `ics/IcsMapper.kt` | VEVENT → Zeile für `CalendarContract.Events` (Zeitzonen, Serien, Ausnahmen) |
 | `sync/SubscriptionSync.kt` | Abo-Kalender anlegen/löschen, herunterladen, Inhalt ersetzen |
 | `sync/Background.kt` | WorkManager: tägliches Abo-Update, Widget bei Änderungen/Mitternacht |
+| `weather/Weather.kt` | Ortssuche und Wetter von Open-Meteo, Zwischenspeicher, Widget-Texte (Tests `WeatherTextTest`) |
 | `widget/TodayWidget.kt` | Glance-Widget „Heute“ |
 | `ui/…` | Compose-Bildschirme: Tag/Woche, Monat, Jahr, Einstellungen (`CalendarsScreen`), Editor |
 | `ui/Zoom.kt` | Detailstufen Tag/Woche/Monat/Jahr und Pinch-Geste (Tests `CalendarZoomTest`) |
