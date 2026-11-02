@@ -34,10 +34,7 @@ android {
     }
 
     buildTypes {
-        // Eigene App-ID für Debug-Builds: Eine per USB/Android Studio
-        // installierte Debug-Version (anderer Signaturschlüssel) kann so neben
-        // der per Obtainium installierten Release-Version existieren, statt mit
-        // ihr zu kollidieren.
+        // Eigene App-ID für Debug-Builds, damit sie neben der Obtainium-Version läuft.
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
@@ -65,6 +62,9 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

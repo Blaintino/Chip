@@ -1,4 +1,4 @@
-name: Build Chip APK
+name: Chip-APK bauen
 
 on:
   push:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       # Steigt mit jedem Lauf – Android installiert Updates nur bei höherem versionCode.
       VERSION_CODE: ${{ github.run_number }}
@@ -27,8 +28,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit-Tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+      - name: Unit-Tests und Lint
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug
 
       - name: Signaturschlüssel aus Secret wiederherstellen
         if: env.HAS_KEYSTORE == 'true'
@@ -46,13 +47,13 @@ jobs:
           ./gradlew --no-daemon assembleRelease
           cp app/build/outputs/apk/release/app-release.apk "Chip-${VERSION_CODE}.apk"
 
-      # Ohne Secrets: Debug-APK, damit der Build trotzdem grün ist. Achtung:
-      # Debug-APKs aus dem CI sind bei jedem Lauf anders signiert, Updates
-      # darüber schlagen fehl ("App nicht installiert") – nur zum Ausprobieren.
+      # Ohne Secrets: Debug-APK, damit der Build trotzdem grün ist. Debug-APKs
+      # aus dem CI sind bei jedem Lauf anders signiert – Updates darüber
+      # schlagen fehl ("App nicht installiert"), nur zum Ausprobieren.
       - name: Debug-APK bauen (keine Signatur-Secrets hinterlegt)
         if: env.HAS_KEYSTORE != 'true'
         run: |
-          echo "::warning::Keine Signatur-Secrets hinterlegt – es wird nur eine Debug-APK gebaut."
+          echo "::warning::Keine Signatur-Secrets hinterlegt – es wird nur eine Debug-APK gebaut (siehe README.md)."
           ./gradlew --no-daemon assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk "Chip-${VERSION_CODE}-debug.apk"
 
@@ -62,6 +63,8 @@ jobs:
           name: Chip-apk
           path: Chip-*.apk
 
+      # Eigenes Repo, daher Tag einfach v<Lauf>. Bewusst keine Vorabversion – die ignoriert
+      # Obtainium standardmäßig.
       - name: GitHub Release anlegen (nur main, nur signiert)
         if: github.ref == 'refs/heads/main' && env.HAS_KEYSTORE == 'true'
         env:

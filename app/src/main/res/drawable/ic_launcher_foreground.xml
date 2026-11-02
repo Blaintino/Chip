@@ -3,7 +3,15 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Kalenderblatt: Rahmen, Kopfleiste, zwei Ringe -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,30 L78,54 L54,78 L30,54 Z" />
+        android:fillType="evenOdd"
+        android:pathData="M36,38 h36 a4,4 0 0 1 4,4 v28 a4,4 0 0 1 -4,4 h-36 a4,4 0 0 1 -4,-4 v-28 a4,4 0 0 1 4,-4 z M37,50 v19 h34 v-19 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,32 h4 v10 h-4 z M62,32 h4 v10 h-4 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,55 h7 v6 h-7 z" />
 </vector>
