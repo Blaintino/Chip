@@ -19,6 +19,19 @@ class WeatherTextTest {
     }
 
     @Test
+    fun `Symbol nach WMO-Code, nachts Mond, ganze Zeile`() {
+        assertEquals("☀️", WeatherText.icon(0, isDay = true))
+        assertEquals("🌙", WeatherText.icon(0, isDay = false))
+        assertEquals("🌧️", WeatherText.icon(63, isDay = true))
+        assertNull(WeatherText.icon(42, isDay = true))
+        val d = day().copy(
+            hourlyTemp = listOf(date.atTime(11, 0) to 10.6),
+            hourlyCode = listOf(Triple(date.atTime(11, 0), 2, true)),
+        )
+        assertEquals("⛅ 11°   ↑ 14°  ↓ 4°", WeatherText.line(d, LocalDateTime.of(2026, 11, 2, 11, 30)))
+    }
+
+    @Test
     fun `aktuelle Temperatur aus der laufenden Stunde`() {
         val d = day().copy(hourlyTemp = listOf(date.atTime(10, 0) to 9.4, date.atTime(11, 0) to 10.6))
         assertEquals("11°", WeatherText.current(d, LocalDateTime.of(2026, 11, 2, 11, 40)))

@@ -537,11 +537,7 @@ private fun WeatherSettings(onChanged: () -> Unit) {
             val info = remember(loadVersion, place) {
                 val last = Weather.lastStatus(context)
                 val day = Weather.today(context, allowFetch = false)
-                val line = day?.let { d ->
-                    val now = java.time.LocalDateTime.now()
-                    listOfNotNull(WeatherText.current(d, now), WeatherText.temperatures(d), WeatherText.rainHint(d, now))
-                        .joinToString("   ")
-                }
+                val line = day?.let { WeatherText.line(it, java.time.LocalDateTime.now()) }
                 listOfNotNull(
                     last?.let { (t, s) -> "Zuletzt geladen: ${Formats.dateTime(t)} – $s" } ?: "Noch nicht geladen",
                     line?.takeIf { it.isNotBlank() }?.let { "Heute: $it" },
