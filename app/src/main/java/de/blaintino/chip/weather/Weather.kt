@@ -66,12 +66,17 @@ object Weather {
      * Wetter für heute. Lädt neu, wenn der Zwischenspeicher älter als eine Stunde oder von gestern ist
      * ([allowFetch]); bei einem Netzfehler bleibt der letzte Stand (falls von heute). null = aus/keine Daten.
      */
-    fun today(context: Context, allowFetch: Boolean, now: LocalDateTime = LocalDateTime.now()): WeatherDay? {
+    fun today(
+        context: Context,
+        allowFetch: Boolean,
+        now: LocalDateTime = LocalDateTime.now(),
+        force: Boolean = false,
+    ): WeatherDay? {
         val place = place(context) ?: return null
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         var body = prefs.getString("body", null)
         val fetchedAt = prefs.getLong("fetchedAt", 0)
-        val stale = body == null || System.currentTimeMillis() - fetchedAt > MAX_AGE_MS ||
+        val stale = force || body == null || System.currentTimeMillis() - fetchedAt > MAX_AGE_MS ||
             parseDay(body, now.toLocalDate())?.hourlyTemp.isNullOrEmpty()
         if (stale && allowFetch) {
             try {
@@ -80,12 +85,25 @@ object Weather {
                         "&daily=temperature_2m_max,temperature_2m_min&hourly=precipitation_probability,temperature_2m" +
                         "&timezone=auto&forecast_days=2",
                 )
-                prefs.edit().putString("body", body).putLong("fetchedAt", System.currentTimeMillis()).commit()
-            } catch (_: Exception) {
-                // Letzten Stand behalten.
+                val parsed = parseDay(body, now.toLocalDate())
+                prefs.edit().putString("body", body).putLong("fetchedAt", System.currentTimeMillis())
+                    .putLong("statusAt", System.currentTimeMillis())
+                    .putString("status", if (parsed == null) "Antwort ohne Daten für heute" else "ok")
+                    .commit()
+            } catch (e: Exception) {
+                // Letzten Stand behalten, Fehler für die Einstellungen merken.
+                prefs.edit().putLong("statusAt", System.currentTimeMillis())
+                    .putString("status", "Fehler: ${e.javaClass.simpleName}: ${e.message}").commit()
             }
         }
         return body?.let { parseDay(it, now.toLocalDate()) }
+    }
+
+    /** Letzter Abruf (Zeit, „ok“ oder Fehlertext) für die Einstellungen; null = noch nie. */
+    fun lastStatus(context: Context): Pair<Long, String>? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val status = prefs.getString("status", null) ?: return null
+        return prefs.getLong("statusAt", 0) to status
     }
 
     private fun parseDay(body: String, date: LocalDate): WeatherDay? = try {
@@ -128,7 +146,13 @@ object Weather {
             conn.connectTimeout = 15_000
             conn.readTimeout = 20_000
             conn.setRequestProperty("User-Agent", "Chip-Kalender (Android)")
-            if (conn.responseCode !in 200..299) throw IOException("HTTP ${conn.responseCode}")
+            if (conn.responseCode !in 200..299) {
+                // Open-Meteo nennt den Grund im JSON („reason“).
+                val reason = runCatching {
+                    conn.errorStream?.use { JSONObject(it.readBytes().toString(Charsets.UTF_8)).optString("reason") }
+                }.getOrNull().orEmpty()
+                throw IOException("HTTP ${conn.responseCode} $reason".trim())
+            }
             return conn.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
         } finally {
             conn.disconnect()
