@@ -18,8 +18,9 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   läuft verlässlich im CI.
 - Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v21, 2026-11-02): Kalender, Woche/Tag/
   Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
-  Kalenderfarben, Widget mit Knöpfen (auch „+ Quälgeist“ mit Quälgeist v49). ICS-Abos dort noch nicht
-  ausdrücklich bestätigt. Cloud-Sessions haben weder Emulator noch Handy.
+  Kalenderfarben, Widget mit Knöpfen (auch „+ Quälgeist“ mit Quälgeist v49), ICS-Abo hinzufügen und
+  laden. Tägliche Abo-Aktualisierung im Hintergrund noch nicht beobachtet. Cloud-Sessions haben weder
+  Emulator noch Handy.
 - Arbeitsweise (Wunsch des Nutzers): Wünsche sammeln, auf dem Arbeitsbranch umsetzen (CI dort nur
   Test-Build), Release (= Merge nach `main`) erst auf Ansage.
 
