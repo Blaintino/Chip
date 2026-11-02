@@ -1,0 +1,72 @@
+name: Build Chip APK
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write # für das GitHub Release auf main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Steigt mit jedem Lauf – Android installiert Updates nur bei höherem versionCode.
+      VERSION_CODE: ${{ github.run_number }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit-Tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Signaturschlüssel aus Secret wiederherstellen
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Signierte Release-APK bauen
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "Chip-${VERSION_CODE}.apk"
+
+      # Ohne Secrets: Debug-APK, damit der Build trotzdem grün ist. Achtung:
+      # Debug-APKs aus dem CI sind bei jedem Lauf anders signiert, Updates
+      # darüber schlagen fehl ("App nicht installiert") – nur zum Ausprobieren.
+      - name: Debug-APK bauen (keine Signatur-Secrets hinterlegt)
+        if: env.HAS_KEYSTORE != 'true'
+        run: |
+          echo "::warning::Keine Signatur-Secrets hinterlegt – es wird nur eine Debug-APK gebaut."
+          ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk "Chip-${VERSION_CODE}-debug.apk"
+
+      - name: APK als Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chip-apk
+          path: Chip-*.apk
+
+      - name: GitHub Release anlegen (nur main, nur signiert)
+        if: github.ref == 'refs/heads/main' && env.HAS_KEYSTORE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${VERSION_CODE}" "Chip-${VERSION_CODE}.apk" \
+            --title "v${VERSION_CODE}" \
+            --notes "Automatischer Build von ${GITHUB_SHA::7}."
