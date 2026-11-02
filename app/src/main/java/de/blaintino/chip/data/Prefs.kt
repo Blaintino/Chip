@@ -138,3 +138,21 @@ object CalendarColors {
         }.commit()
     }
 }
+
+/**
+ * Kalender, die nur in Monat und Jahr ausgeblendet sind (Wunsch des Nutzers: der Stundenplan-Abo
+ * überdeckt dort alles). Tag, Woche und Widget zeigen sie weiter (dort gilt nur [HiddenCalendars]).
+ */
+object OverviewHiddenCalendars {
+    private const val PREFS = "chip"
+    private const val KEY = "overview_hidden_calendars"
+
+    fun get(context: Context): Set<Long> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getStringSet(KEY, emptySet())!!.mapNotNull { it.toLongOrNull() }.toSet()
+
+    fun set(context: Context, ids: Set<Long>) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putStringSet(KEY, ids.map { it.toString() }.toSet()).commit()
+    }
+}

@@ -32,7 +32,9 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   wählen. Jedes Abo wird ein eigener, nur lesbarer Kalender auf dem Handy (nicht bei Google) und wird
   **täglich** aktualisiert, außerdem beim Öffnen der App, wenn das letzte Laden über einen Tag her
   ist, und von Hand. `webcal://`-Links aus dem Browser öffnen direkt den Abo-Dialog.
-- **Kalender ein-/ausblenden und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
+- **Mehrtägige Termine** erscheinen verbunden: in Woche/Tag als durchgehender Balken oben, im Monat als
+  Balken über die Tage, im Jahr als Linie unter den Tagen.
+- **Kalender ein-/ausblenden (auch nur für Monat/Jahr) und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
   Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
 - **Wetter im Widget** (⚙ → „Wetter im Widget“, Ort per Namenssuche, keine Standort-Berechtigung):
   aktuelle Temperatur, Höchst-/Tiefstwert von heute und Regenhinweis (ab 40 % für den Rest des Tages, z. B. „☂ ab 15 Uhr

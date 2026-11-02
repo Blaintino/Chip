@@ -16,6 +16,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
+- Zuletzt auf dem Handy bestätigt: v51 (2026-11-02; Wischen/Pinch mit Rückmeldung, Zoom zum Tag unter
+  den Fingern, Wetter-Pille, Heute-Knopf mittig).
 - Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v27, 2026-11-02; Widget ohne Kopfzeile nur mit
   anstehenden Terminen, Plus-Knöpfe nebeneinander; davor v21): Kalender, Woche/Tag/
   Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
@@ -31,6 +33,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 - **Datenquelle ist ausschließlich `CalendarContract`.** Google-Kalender (auch geteilte) kommen über
   das Google-Konto des Handys. Freigaben verwalten geht nur beim Anbieter, nicht in Chip.
 - Ausblenden (`HiddenCalendars`) gilt nur in Chip (App + Widget), nie `Calendars.VISIBLE` ändern.
+  Zusätzlich je Kalender „Monat/Jahr“ (`OverviewHiddenCalendars`, Wunsch des Nutzers: Stundenplan-Abo
+  überdeckte dort alles): aus = nur in Tag, Woche und Widget.
+- **Mehrtägige Termine** (Wunsch des Nutzers): `isSpanning()` = ganztägig über mehrere Tage oder ≥ 24 h
+  (Nachttermine bleiben im Raster). Woche/Tag: Leiste oben mit durchgehenden Balken über alle Tage
+  (`SpanLayout.lanes`, Tests `SpanLayoutTest`; runde Enden nur bei echtem Beginn/Ende, Tag zeigt „(k/n)“),
+  Monat: verbundene dünne Balken unten in den Zellen statt Punkten, Jahr: durchgehende Linie unter den Tagen.
 - Eigene Kalenderfarben (`CalendarColors`, Wunsch des Nutzers) nur in Chip: `CALENDAR_COLOR` darf nur
   der Sync-Adapter ändern (Google würde es überschreiben). Angewendet in `CalendarRepository`
   (`calendars()`/`instances()`); Termine mit eigener `EVENT_COLOR` behalten ihre Farbe.

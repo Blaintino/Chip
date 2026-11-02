@@ -79,6 +79,7 @@ import de.blaintino.chip.data.CalendarRepository
 import de.blaintino.chip.data.EventDraft
 import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.HiddenCalendars
+import de.blaintino.chip.data.OverviewHiddenCalendars
 import de.blaintino.chip.data.SubscriptionStore
 import de.blaintino.chip.sync.Background
 import de.blaintino.chip.sync.SubscriptionSync
@@ -185,6 +186,7 @@ private fun ChipApp(
     var zoom by rememberSaveable { mutableStateOf(CalendarZoom.WEEK) }
     var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var hidden by remember { mutableStateOf(HiddenCalendars.get(context)) }
+    var overviewHidden by remember { mutableStateOf(OverviewHiddenCalendars.get(context)) }
     var version by remember { mutableIntStateOf(0) }
     var calendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
     var editing by remember { mutableStateOf<EventDraft?>(null) }
@@ -333,7 +335,7 @@ private fun ChipApp(
                 onCreateAt = { newEvent(it) },
             )
             CalendarZoom.MONTH -> MonthScreen(
-                repo, version, hidden, day,
+                repo, version, hidden + overviewHidden, day,
                 onSelect = ::select,
                 contentPadding = pad,
                 onEventClick = ::openEvent,
@@ -348,7 +350,7 @@ private fun ChipApp(
             CalendarZoom.YEAR -> YearScreen(
                 repo = repo,
                 version = version,
-                hidden = hidden,
+                hidden = hidden + overviewHidden,
                 selected = day,
                 onSelect = ::select,
                 onOpenMonth = {
@@ -447,6 +449,11 @@ private fun ChipApp(
                     hidden = it
                     HiddenCalendars.set(context, it)
                     scope.launch { TodayWidget.refresh(context) }
+                },
+                overviewHidden = overviewHidden,
+                onOverviewHiddenChange = {
+                    overviewHidden = it
+                    OverviewHiddenCalendars.set(context, it)
                 },
                 onColorsChanged = {
                     version++

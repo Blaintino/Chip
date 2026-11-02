@@ -73,7 +73,8 @@ private const val VISIBLE_TO = 18
 private val MIN_HOUR_HEIGHT = 28.dp
 private val TIME_COLUMN = 36.dp
 private val WEEKDAY = DateTimeFormatter.ofPattern("EE", Locale.GERMAN)
-private const val MAX_ALL_DAY = 2
+private const val MAX_ALL_DAY = 3
+private val STRIP_LANE = 20.dp
 private val PICKER_DAY = DateTimeFormatter.ofPattern("EE, d. MMM", Locale.GERMAN)
 
 /**
@@ -105,8 +106,15 @@ fun WeekScreen(
     LaunchedEffect(version, hidden, weekStart, dayCount) {
         events = withContext(Dispatchers.IO) { repo.instances(weekStart, days.last(), hidden) }
     }
-    val allDayByDay = days.associateWith { d -> events.filter { it.allDay && d in it.startDay..it.endDay } }
-    val anyAllDay = allDayByDay.values.any { it.isNotEmpty() }
+    // Leiste oben: ganztägige und mehrtägige Termine als Balken über alle ihre Tage (Wunsch des Nutzers).
+    val stripEvents = events.filter { it.inAllDayStrip() && it.endDay >= days.first() && it.startDay <= days.last() }
+    val stripSpans = stripEvents.map { e ->
+        val s = days.indexOf(maxOf(e.startDay, days.first()))
+        val t = days.indexOf(minOf(e.endDay, days.last()))
+        s to t
+    }
+    val stripLanes = SpanLayout.lanes(stripSpans)
+    val anyAllDay = stripEvents.isNotEmpty()
 
     val scroll = rememberScrollState()
     val dayRegistry = LocalDayBounds.current
@@ -158,23 +166,49 @@ fun WeekScreen(
             }
         }
 
-        // Ganztägige Termine
+        // Ganztägige und mehrtägige Termine: durchgehende Balken, runde Enden nur, wo der Termin wirklich
+        // beginnt bzw. endet (geht er über die Ansicht hinaus, bleibt die Kante gerade).
         if (anyAllDay) {
-            Row(Modifier.fillMaxWidth().padding(end = 4.dp, top = 2.dp)) {
-                Box(Modifier.width(TIME_COLUMN))
-                days.forEach { d ->
-                    val list = allDayByDay[d].orEmpty()
-                    Column(Modifier.weight(1f).padding(horizontal = 1.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        list.take(maxAllDay).forEach { ev -> EventChip(ev, Modifier.fillMaxWidth().height(18.dp), onClick = { onEventClick(ev) }) }
-                        if (list.size > maxAllDay) {
-                            Text(
-                                "+${list.size - maxAllDay}",
-                                modifier = Modifier.fillMaxWidth().clickable { onSelect(d) },
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
+            val shownLanes = minOf(stripLanes.max() + 1, maxAllDay)
+            val hiddenCount = stripLanes.count { it >= shownLanes }
+            BoxWithConstraints(
+                Modifier.fillMaxWidth().padding(end = 4.dp, top = 2.dp).height(STRIP_LANE * shownLanes + if (hiddenCount > 0) 14.dp else 0.dp),
+            ) {
+                val dayWidth = (maxWidth - TIME_COLUMN) / days.size
+                stripEvents.forEachIndexed { i, ev ->
+                    val lane = stripLanes[i]
+                    if (lane < shownLanes) {
+                        val (s0, s1) = stripSpans[i]
+                        val startsHere = ev.startDay >= days.first()
+                        val endsHere = ev.endDay <= days.last()
+                        val label = if (single && ev.startDay != ev.endDay) {
+                            val n = ev.endDay.toEpochDay() - ev.startDay.toEpochDay() + 1
+                            val k = days.first().toEpochDay() - ev.startDay.toEpochDay() + 1
+                            "${ev.title} ($k/$n)"
+                        } else ev.title
+                        SpanBar(
+                            label = label,
+                            color = ev.color,
+                            startRounded = startsHere,
+                            endRounded = endsHere,
+                            modifier = Modifier
+                                .offset(x = TIME_COLUMN + dayWidth * s0, y = STRIP_LANE * lane)
+                                .width(dayWidth * (s1 - s0 + 1))
+                                .height(STRIP_LANE)
+                                .padding(horizontal = 1.dp, vertical = 1.dp),
+                            onClick = { onEventClick(ev) },
+                        )
                     }
+                }
+                if (hiddenCount > 0) {
+                    Text(
+                        "+$hiddenCount weitere",
+                        modifier = Modifier.offset(x = TIME_COLUMN, y = STRIP_LANE * shownLanes).clickable {
+                            onSelect(days.first())
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -255,7 +289,7 @@ fun WeekScreen(
                     val dayStart = d.atStartOfDay(zone).toInstant().toEpochMilli()
                     val dayEnd = d.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
                     val timed = events.filter {
-                        !it.allDay && (it.end > dayStart && it.begin < dayEnd || it.begin == it.end && it.begin in dayStart until dayEnd)
+                        !it.inAllDayStrip() && (it.end > dayStart && it.begin < dayEnd || it.begin == it.end && it.begin in dayStart until dayEnd)
                     }
                     val segments = timed.map { ev ->
                         val s = ((maxOf(ev.begin, dayStart) - dayStart) / 60_000).toInt().coerceIn(0, 1440)
@@ -353,6 +387,36 @@ private fun EventChip(
             if (showLocation && ev.location.isNotBlank()) {
                 Text(ev.location, color = fg.copy(alpha = 0.85f), fontSize = 10.sp, lineHeight = 11.sp, maxLines = 1)
             }
+        }
+    }
+}
+
+/** Balken eines ganz- oder mehrtägigen Termins; Ecken nur dort rund, wo der Termin beginnt bzw. endet. */
+@Composable
+fun SpanBar(
+    label: String,
+    color: Int,
+    startRounded: Boolean,
+    endRounded: Boolean,
+    modifier: Modifier,
+    onClick: (() -> Unit)? = null,
+    showText: Boolean = true,
+) {
+    val bg = Color(color)
+    val fg = if (bg.luminance() > 0.5f) Color.Black else Color.White
+    val r = 4.dp
+    val shape = RoundedCornerShape(
+        topStart = if (startRounded) r else 0.dp, bottomStart = if (startRounded) r else 0.dp,
+        topEnd = if (endRounded) r else 0.dp, bottomEnd = if (endRounded) r else 0.dp,
+    )
+    Box(
+        modifier.clip(shape).background(bg)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (showText) {
+            Text(label, color = fg, fontSize = 11.sp, lineHeight = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
         }
     }
 }

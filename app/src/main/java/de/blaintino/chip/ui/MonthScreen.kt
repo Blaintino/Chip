@@ -9,6 +9,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -46,6 +49,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
 
+private const val CELL_RATIO = 0.85f
+private const val MONTH_SPAN_LANES = 2
 private val WEEKDAYS = listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 /** Monatsraster (Woche ab Montag) mit Farbpunkten, darunter die Termine des gewählten Tages. */
@@ -67,8 +72,11 @@ fun MonthScreen(
     val first = month.atDay(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val last = month.atEndOfMonth().with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
     var byDay by remember { mutableStateOf<Map<LocalDate, List<EventInstance>>>(emptyMap()) }
+    var spanning by remember { mutableStateOf<List<EventInstance>>(emptyList()) }
     LaunchedEffect(version, hidden, month) {
-        byDay = withContext(Dispatchers.IO) { groupByDay(repo.instances(first, last, hidden), first, last).toMap() }
+        val all = withContext(Dispatchers.IO) { repo.instances(first, last, hidden) }
+        byDay = groupByDay(all, first, last).toMap()
+        spanning = all.filter { it.isSpanning() }
     }
     val dayEvents = byDay[selected].orEmpty()
     val haptic = LocalHapticFeedback.current
@@ -109,6 +117,18 @@ fun MonthScreen(
             Column(Modifier.padding(horizontal = 8.dp)) {
                 var weekStart = first
                 while (weekStart <= last) {
+                    val ws = weekStart
+                    val we = weekStart.plusDays(6)
+                    // Mehrtägige Termine dieser Woche als verbundene Balken unten in den Zellen (Wunsch des Nutzers).
+                    val weekSpans = spanning.filter { it.endDay >= ws && it.startDay <= we }
+                    val idx = weekSpans.map { e ->
+                        (maxOf(e.startDay, ws).toEpochDay() - ws.toEpochDay()).toInt() to
+                            (minOf(e.endDay, we).toEpochDay() - ws.toEpochDay()).toInt()
+                    }
+                    val lanes = SpanLayout.lanes(idx)
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val cellW = maxWidth / 7
+                    val cellH = cellW / CELL_RATIO
                     Row(Modifier.fillMaxWidth()) {
                         for (i in 0L until 7L) {
                             val day = weekStart.plusDays(i)
@@ -117,7 +137,7 @@ fun MonthScreen(
                                 inMonth = YearMonth.from(day) == month,
                                 isToday = day == today,
                                 isSelected = day == selected,
-                                events = byDay[day].orEmpty(),
+                                events = byDay[day].orEmpty().filter { !it.isSpanning() },
                                 modifier = Modifier.weight(1f).dayBounds(dayRegistry, day),
                                 onClick = { onSelect(day) },
                                 onLongClick = {
@@ -127,6 +147,24 @@ fun MonthScreen(
                                 },
                             )
                         }
+                    }
+                    weekSpans.forEachIndexed { i, ev ->
+                        val lane = lanes[i]
+                        if (lane < MONTH_SPAN_LANES) {
+                            val (a, b) = idx[i]
+                            SpanBar(
+                                label = ev.title,
+                                color = ev.color,
+                                startRounded = ev.startDay >= ws,
+                                endRounded = ev.endDay <= we,
+                                showText = false,
+                                modifier = Modifier
+                                    .offset(x = cellW * a + 2.dp, y = cellH - 6.dp - 6.dp * lane)
+                                    .width(cellW * (b - a + 1) - 4.dp)
+                                    .height(4.dp),
+                            )
+                        }
+                    }
                     }
                     weekStart = weekStart.plusWeeks(1)
                 }
@@ -165,7 +203,7 @@ private fun DayCell(
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = modifier
-            .aspectRatio(0.85f)
+            .aspectRatio(CELL_RATIO)
             .padding(2.dp)
             .clip(RoundedCornerShape(10.dp))
             .then(if (isSelected) Modifier.background(colors.secondaryContainer) else Modifier)

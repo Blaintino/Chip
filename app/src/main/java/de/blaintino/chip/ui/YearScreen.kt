@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,11 +60,19 @@ fun YearScreen(
     val dayRegistry = LocalDayBounds.current
     val year = selected.year
     var busyDays by remember { mutableStateOf<Set<LocalDate>>(emptySet()) }
+    // Tage unter mehrtägigen Terminen → Farbe der Linie (Wunsch des Nutzers: Mehrtägiges verbunden zeigen).
+    var spanDays by remember { mutableStateOf<Map<LocalDate, Int>>(emptyMap()) }
     LaunchedEffect(version, hidden, year) {
-        busyDays = withContext(Dispatchers.IO) {
-            val from = LocalDate.of(year, 1, 1)
-            val to = LocalDate.of(year, 12, 31)
-            groupByDay(repo.instances(from, to, hidden), from, to).map { it.first }.toSet()
+        val from = LocalDate.of(year, 1, 1)
+        val to = LocalDate.of(year, 12, 31)
+        val all = withContext(Dispatchers.IO) { repo.instances(from, to, hidden) }
+        val (spans, single) = all.partition { it.isSpanning() }
+        busyDays = groupByDay(single, from, to).map { it.first }.toSet()
+        spanDays = buildMap {
+            for (e in spans) {
+                var d = maxOf(e.startDay, from)
+                while (d <= minOf(e.endDay, to)) { putIfAbsent(d, e.color); d = d.plusDays(1) }
+            }
         }
     }
 
@@ -84,6 +94,7 @@ fun YearScreen(
                         month = YearMonth.of(year, m),
                         today = today,
                         busyDays = busyDays,
+                        spanDays = spanDays,
                         modifier = Modifier.weight(1f).dayBounds(dayRegistry, YearMonth.of(year, m).atDay(1)),
                         onClick = {
                             val ym = YearMonth.of(year, m)
@@ -101,6 +112,7 @@ private fun MiniMonth(
     month: YearMonth,
     today: LocalDate,
     busyDays: Set<LocalDate>,
+    spanDays: Map<LocalDate, Int>,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
@@ -121,12 +133,16 @@ private fun MiniMonth(
                 for (i in 0L until 7L) {
                     val d = weekStart.plusDays(i)
                     val inMonth = YearMonth.from(d) == month
-                    Box(Modifier.weight(1f).aspectRatio(1f).padding(0.5.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).aspectRatio(1f).padding(vertical = 0.5.dp), contentAlignment = Alignment.Center) {
+                        // Linie unter Tagen mehrtägiger Termine; ohne seitlichen Abstand, damit sie durchgeht.
+                        if (inMonth) spanDays[d]?.let { c ->
+                            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(2.dp).background(Color(c)))
+                        }
                         if (inMonth) {
                             val isToday = d == today
                             val busy = d in busyDays
                             Box(
-                                Modifier.fillMaxSize().clip(CircleShape).then(
+                                Modifier.fillMaxSize().padding(horizontal = 0.5.dp).clip(CircleShape).then(
                                     when {
                                         isToday -> Modifier.background(colors.primary)
                                         busy -> Modifier.background(colors.secondaryContainer)
