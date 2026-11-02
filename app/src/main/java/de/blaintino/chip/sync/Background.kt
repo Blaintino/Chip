@@ -30,6 +30,7 @@ object Background {
     private const val SYNC_NOW_WORK = "ics-sync-now"
     private const val CHANGE_WORK = "calendar-change-watch"
     private const val MIDNIGHT_WORK = "widget-midnight"
+    private const val EVENT_END_WORK = "widget-event-end"
 
     fun schedule(context: Context) {
         val wm = WorkManager.getInstance(context)
@@ -71,6 +72,21 @@ object Background {
         )
     }
 
+    /** Widget zum Ende des nächsten angezeigten Termins neu zeichnen (vergangene ausblenden); null = abbrechen. */
+    fun scheduleWidgetRefreshAt(context: Context, atMillis: Long?) {
+        val wm = WorkManager.getInstance(context)
+        if (atMillis == null) {
+            wm.cancelUniqueWork(EVENT_END_WORK)
+            return
+        }
+        val delayMs = maxOf(0L, atMillis - System.currentTimeMillis()) + 5_000L
+        wm.enqueueUniqueWork(
+            EVENT_END_WORK,
+            ExistingWorkPolicy.REPLACE,
+            OneTimeWorkRequestBuilder<WidgetRefreshWorker>().setInitialDelay(delayMs, TimeUnit.MILLISECONDS).build(),
+        )
+    }
+
     internal fun scheduleMidnight(context: Context, policy: ExistingWorkPolicy) {
         val zone = ZoneId.systemDefault()
         val next = LocalDate.now(zone).plusDays(1).atStartOfDay(zone).plusMinutes(1)
@@ -105,6 +121,13 @@ class MidnightWorker(context: Context, params: WorkerParameters) : CoroutineWork
     override suspend fun doWork(): Result {
         TodayWidget.refresh(applicationContext)
         Background.scheduleMidnight(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
+        return Result.success()
+    }
+}
+
+class WidgetRefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        TodayWidget.refresh(applicationContext)
         return Result.success()
     }
 }

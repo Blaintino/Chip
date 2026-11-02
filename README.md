@@ -34,7 +34,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 - **Kalender ein-/ausblenden und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
   Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
 - **Widget „Heute“**: schwarzer Hintergrund, scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
-  Ort; unten die Plus-Knöpfe der App (gleiche Kalender und Farben, öffnen „Neuer Termin“) und
+  Ort, nur laufende und kommende (vergangene verschwinden zum Terminende, ganztägige bleiben); unten die Plus-Knöpfe der App (gleiche Kalender und Farben, öffnen „Neuer Termin“) und
   „+ Quälgeist“ (öffnet die Schnelleingabe von Quälgeist, falls dort freigegeben, sonst Quälgeist).
   Aktualisiert sich bei jeder Änderung in der Kalenderdatenbank und kurz nach Mitternacht.
 

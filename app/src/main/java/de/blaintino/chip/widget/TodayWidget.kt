@@ -88,12 +88,15 @@ class TodayWidget : GlanceAppWidget() {
             WidgetStatus.record(context, "Kein Kalenderzugriff")
             WidgetData.NoPermission
         } else {
-            val events = repo.instances(today, today, HiddenCalendars.get(context))
+            val now = System.currentTimeMillis()
+            // Nur laufende und kommende Termine; zum nächsten Terminende erneut zeichnen.
+            val events = WidgetFilter.upcoming(repo.instances(today, today, HiddenCalendars.get(context)), now)
+            Background.scheduleWidgetRefreshAt(context, WidgetFilter.nextChange(events, now))
             val calendars = repo.calendars()
             val quick = (QuickAddCalendars.get(context) ?: emptyList()).mapNotNull { id ->
                 calendars.firstOrNull { it.id == id && it.writable }?.let { QuickButton(it.id, it.name, it.color) }
             }
-            WidgetStatus.record(context, "${events.size} Termine geladen")
+            WidgetStatus.record(context, "${events.size} anstehende Termine geladen")
             WidgetData.Loaded(events, quick)
         }
     } catch (e: Exception) {
@@ -182,7 +185,7 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
                 WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
                 is WidgetData.Failed -> Hint("Fehler: ${state.message}")
                 is WidgetData.Loaded -> if (state.events.isEmpty()) {
-                    Hint("Keine Termine heute")
+                    Hint("Keine weiteren Termine heute")
                 } else {
                     // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
                     val indexed = state.events.withIndex().toList()
