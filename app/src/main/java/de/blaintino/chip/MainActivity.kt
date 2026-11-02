@@ -329,6 +329,13 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                         onSelect = { selectedDay = it },
                         contentPadding = padding,
                         onEventClick = ::openEvent,
+                        onCreateOn = { day ->
+                            val now = LocalDateTime.now()
+                            newEvent(
+                                at = if (day == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+                                else day.atTime(9, 0),
+                            )
+                        },
                     )
                     CalendarZoom.YEAR -> YearScreen(
                         repo = repo,

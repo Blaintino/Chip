@@ -60,6 +60,7 @@ fun Modifier.calendarGestures(
     val swipe by rememberUpdatedState(onSwipe)
     pointerInput(Unit) {
         val slop = viewConfiguration.touchSlop
+        val longPressMs = viewConfiguration.longPressTimeoutMillis
         val swipePx = SWIPE_DISTANCE.toPx()
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -67,6 +68,8 @@ fun Modifier.calendarGestures(
             var zoomFired = false
             var multiTouch = false
             var swiping = false
+            // Nach langem Stillhalten gehört die Geste dem Zeitwähler der Ansicht, nicht dem Wischen.
+            var longPressed = false
             var dx = 0f
             var dy = 0f
             do {
@@ -91,7 +94,8 @@ fun Modifier.calendarGestures(
                         val delta = change.positionChange()
                         dx += delta.x
                         dy += delta.y
-                        if (!swiping && abs(dx) > slop && abs(dx) > 2 * abs(dy)) swiping = true
+                        if (!swiping && !longPressed && change.uptimeMillis - down.uptimeMillis > longPressMs) longPressed = true
+                        if (!swiping && !longPressed && abs(dx) > slop && abs(dx) > 2 * abs(dy)) swiping = true
                         if (swiping) change.consume()
                         if (!change.pressed && swiping && abs(dx) > swipePx) swipe(if (dx < 0) 1 else -1)
                     }
