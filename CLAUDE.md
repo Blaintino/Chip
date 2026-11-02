@@ -49,7 +49,9 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   gezeichnet), Loslassen nach ¼ Breite oder mit Schwung blättert (`settleSwipe`, 280 ms), sonst zurück;
   Pfeile im Kopf animieren genauso (`select` erkennt Sprünge um genau einen Zeitraum). Pinch skaliert
   aktuelle und Ziel-Ansicht live (aufziehen: Ziel wächst aus dem Fingermittelpunkt; ab 45 % Fortschritt
-  wird beim Loslassen gewechselt, `settlePinch`). Alle Seiten in einer Schleife mit `key(Stufe, Datum)`,
+  wird beim Loslassen gewechselt, `settlePinch`). Gezoomt wird zu dem Tag/Monat, über dem die Geste beginnt (Wunsch des
+  Nutzers): die aktuelle Ansicht meldet ihre Tages-/Monatsbereiche in `DayBounds` (`LocalDayBounds`,
+  Woche nur waagerecht), `pinchDay` wird beim Wechsel zu `selectedDay`. Alle Seiten in einer Schleife mit `key(Stufe, Datum)`,
   damit Nachbar/Ziel beim Übernehmen ihren Zustand behalten (Initial-Durchgang, verbraucht erst nach erkannter Geste, damit senkrechtes Scrollen
   und Tippen unberührt bleiben und ein Wischen kein Tippen auslöst). Tag = `WeekScreen` mit
   `dayCount = 1`. Alle Stufen folgen `selectedDay` (auch die Monatsnavigation), damit Zoomen beim
@@ -70,7 +72,7 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   in einer Geste am Raster (`WeekScreen`), damit Tippen und langes Drücken sich nicht doppeln;
   `calendarGestures` wertet nach der Long-Press-Zeit kein Wischen mehr. Monat → langes Drücken auf
   einen Tag öffnet „Neuer Termin“ (heute: nächste volle Stunde, sonst 9:00).
-- Knopf „Heute“ neben dem Titel (nur Tab Tag/Woche/Monat/Jahr) setzt `selectedDay` auf heute.
+- Knopf „Heute“ mittig zwischen Titel und Zahnrad (Wunsch des Nutzers) setzt `selectedDay` auf heute.
 - **ICS-Abos sind Pflichtfunktion** (Wunsch des Nutzers, tägliche Aktualisierung):
   - Jedes Abo = eigener lokaler Kalender (Konto `Chip-Abos`, Typ `ACCOUNT_TYPE_LOCAL`, nur lesbar),
     angelegt und befüllt als Sync-Adapter (`CALLER_IS_SYNCADAPTER`). Abo-Liste in

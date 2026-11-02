@@ -55,6 +55,7 @@ fun YearScreen(
     contentPadding: PaddingValues,
 ) {
     val today = LocalDate.now()
+    val dayRegistry = LocalDayBounds.current
     val year = selected.year
     var busyDays by remember { mutableStateOf<Set<LocalDate>>(emptySet()) }
     LaunchedEffect(version, hidden, year) {
@@ -83,7 +84,7 @@ fun YearScreen(
                         month = YearMonth.of(year, m),
                         today = today,
                         busyDays = busyDays,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).dayBounds(dayRegistry, YearMonth.of(year, m).atDay(1)),
                         onClick = {
                             val ym = YearMonth.of(year, m)
                             onOpenMonth(if (YearMonth.from(selected) == ym) selected else ym.atDay(1))

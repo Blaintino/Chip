@@ -109,6 +109,7 @@ fun WeekScreen(
     val anyAllDay = allDayByDay.values.any { it.isNotEmpty() }
 
     val scroll = rememberScrollState()
+    val dayRegistry = LocalDayBounds.current
     val haptic = LocalHapticFeedback.current
     val createAt by rememberUpdatedState(onCreateAt)
     var picker by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -263,7 +264,7 @@ fun WeekScreen(
                     }
                     val slots = DayLayout.layout(segments)
                     BoxWithConstraints(
-                        Modifier.weight(1f).fillMaxHeight()
+                        Modifier.weight(1f).fillMaxHeight().dayBounds(dayRegistry, d)
                             .drawBehind {
                                 val hourPx = hourHeight.toPx()
                                 for (h in 1 until 24) {

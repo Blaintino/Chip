@@ -72,6 +72,7 @@ fun MonthScreen(
     }
     val dayEvents = byDay[selected].orEmpty()
     val haptic = LocalHapticFeedback.current
+    val dayRegistry = LocalDayBounds.current
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
         item {
@@ -117,7 +118,7 @@ fun MonthScreen(
                                 isToday = day == today,
                                 isSelected = day == selected,
                                 events = byDay[day].orEmpty(),
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).dayBounds(dayRegistry, day),
                                 onClick = { onSelect(day) },
                                 onLongClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
