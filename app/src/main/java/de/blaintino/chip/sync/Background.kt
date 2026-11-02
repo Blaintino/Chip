@@ -30,10 +30,19 @@ object Background {
     private const val SYNC_NOW_WORK = "ics-sync-now"
     private const val CHANGE_WORK = "calendar-change-watch"
     private const val MIDNIGHT_WORK = "widget-midnight"
+    private const val WEATHER_WORK = "weather-hourly"
     private const val EVENT_END_WORK = "widget-event-end"
 
     fun schedule(context: Context) {
         val wm = WorkManager.getInstance(context)
+        // Wetter fürs Widget stündlich (nur mit Netz; ohne gewählten Ort tut der Auftrag nichts).
+        wm.enqueueUniquePeriodicWork(
+            WEATHER_WORK,
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<WeatherWorker>(1, TimeUnit.HOURS)
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build(),
+        )
         wm.enqueueUniquePeriodicWork(
             SYNC_WORK,
             ExistingPeriodicWorkPolicy.KEEP,
@@ -128,6 +137,16 @@ class MidnightWorker(context: Context, params: WorkerParameters) : CoroutineWork
 class WidgetRefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         TodayWidget.refresh(applicationContext)
+        return Result.success()
+    }
+}
+
+class WeatherWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        if (de.blaintino.chip.weather.Weather.place(applicationContext) != null) {
+            de.blaintino.chip.weather.Weather.today(applicationContext, allowFetch = true)
+            TodayWidget.refresh(applicationContext)
+        }
         return Result.success()
     }
 }

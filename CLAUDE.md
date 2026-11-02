@@ -97,6 +97,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   dauerhafte Ladeanzeige; Status war „noch nie gemeldet“, nach Entfernen und neu Platzieren lief es.
   Vermutung (nicht belegt): vor App-Updates platzierte Widgets wurden nicht neu angestoßen. Deshalb
   zeichnet `UpdateReceiver` (MY_PACKAGE_REPLACED, BOOT_COMPLETED) und jeder App-Start das Widget neu.
+- **Wetter im Widget** (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis (`WeatherText`,
+  Schwelle 40 % für die restlichen Stunden, Tests `WeatherTextTest`) als erste Zeile der Terminfläche,
+  ohne Termine als eigene kleine Fläche über den Knöpfen. Quelle Open-Meteo (frei, ohne Schlüssel,
+  Namensnennung in den Einstellungen), Ort **nur per Namenssuche** in den Einstellungen – ausdrücklich
+  keine Standort-Berechtigung. Antwort in SharedPreferences `weather`, höchstens stündlich neu
+  (`Weather.today`, `WeatherWorker` stündlich mit Netz); bei Netzfehler bleibt der letzte Stand von heute.
 - Neue Abhängigkeiten nur mit gutem Grund. Aktuell: Compose, Core-KTX, Activity-Compose,
   Lifecycle, WorkManager, Glance.
 - Debug-Build: App-ID `de.blaintino.chip.debug`, Name über den Manifest-Platzhalter `appLabel`.
