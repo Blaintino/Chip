@@ -22,6 +22,8 @@ data class WeatherDay(
     val hourlyRain: List<Pair<LocalDateTime, Int>>,
     /** Temperatur je Stunde (für „jetzt“). */
     val hourlyTemp: List<Pair<LocalDateTime, Double>> = emptyList(),
+    /** WMO-Wettercode und Tag/Nacht je Stunde (für das Symbol). */
+    val hourlyCode: List<Triple<LocalDateTime, Int, Boolean>> = emptyList(),
 )
 
 /**
@@ -77,12 +79,12 @@ object Weather {
         var body = prefs.getString("body", null)
         val fetchedAt = prefs.getLong("fetchedAt", 0)
         val stale = force || body == null || System.currentTimeMillis() - fetchedAt > MAX_AGE_MS ||
-            parseDay(body, now.toLocalDate())?.hourlyTemp.isNullOrEmpty()
+            parseDay(body, now.toLocalDate())?.hourlyCode.isNullOrEmpty()
         if (stale && allowFetch) {
             try {
                 body = get(
                     "https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}" +
-                        "&daily=temperature_2m_max,temperature_2m_min&hourly=precipitation_probability,temperature_2m" +
+                        "&daily=temperature_2m_max,temperature_2m_min&hourly=precipitation_probability,temperature_2m,weather_code,is_day" +
                         "&timezone=auto&forecast_days=2",
                 )
                 val parsed = parseDay(body, now.toLocalDate())
@@ -118,9 +120,15 @@ object Weather {
             val hours = hourly?.optJSONArray("time") ?: JSONArray()
             val probs = hourly?.optJSONArray("precipitation_probability") ?: JSONArray()
             val temps = hourly?.optJSONArray("temperature_2m") ?: JSONArray()
+            val codes = hourly?.optJSONArray("weather_code") ?: JSONArray()
+            val isDay = hourly?.optJSONArray("is_day") ?: JSONArray()
             val times = (0 until hours.length()).map { i -> runCatching { LocalDateTime.parse(hours.getString(i)) }.getOrNull() }
             val temp = times.mapIndexedNotNull { i, t ->
                 if (t == null || t.toLocalDate() != date || i >= temps.length() || temps.isNull(i)) null else t to temps.optDouble(i)
+            }
+            val code = times.mapIndexedNotNull { i, t ->
+                if (t == null || t.toLocalDate() != date || i >= codes.length() || codes.isNull(i)) null
+                else Triple(t, codes.optInt(i), i >= isDay.length() || isDay.optInt(i, 1) == 1)
             }
             val rain = (0 until hours.length()).mapNotNull { i ->
                 val t = runCatching { LocalDateTime.parse(hours.getString(i)) }.getOrNull() ?: return@mapNotNull null
@@ -132,6 +140,7 @@ object Weather {
                 min = daily.optJSONArray("temperature_2m_min")?.optDoubleOrNull(idx),
                 hourlyRain = rain,
                 hourlyTemp = temp,
+                hourlyCode = code,
             )
         }
     } catch (_: Exception) {
@@ -164,6 +173,33 @@ object Weather {
 object WeatherText {
     /** Ab dieser Regenwahrscheinlichkeit (Prozent) gibt es einen Hinweis. */
     const val RAIN_THRESHOLD = 40
+
+    /** Symbol für das Wetter der laufenden Stunde (WMO-Code von Open-Meteo), nachts Mond statt Sonne. */
+    fun icon(day: WeatherDay, now: LocalDateTime): String? {
+        val (_, code, isDay) = day.hourlyCode.firstOrNull { (t, _, _) ->
+            t.toLocalDate() == now.toLocalDate() && t.hour == now.hour
+        } ?: return null
+        return icon(code, isDay)
+    }
+
+    fun icon(code: Int, isDay: Boolean): String? = when (code) {
+        0 -> if (isDay) "☀️" else "🌙"
+        1 -> if (isDay) "🌤️" else "🌙"
+        2 -> "⛅"
+        3 -> "☁️"
+        45, 48 -> "🌫️"
+        51, 53, 55, 56, 57, 80, 81, 82 -> "🌦️"
+        61, 63, 65, 66, 67 -> "🌧️"
+        71, 73, 75, 77, 85, 86 -> "🌨️"
+        95, 96, 99 -> "⛈️"
+        else -> null
+    }
+
+    /** Ganze Wetterzeile fürs Widget, z. B. „⛅ 11°   ↑ 14°  ↓ 4°   ☂ ab 15 Uhr (70 %)“; null ohne Daten. */
+    fun line(day: WeatherDay, now: LocalDateTime): String? {
+        val current = listOfNotNull(icon(day, now), current(day, now)).joinToString(" ").ifBlank { null }
+        return listOfNotNull(current, temperatures(day), rainHint(day, now)).joinToString("   ").ifBlank { null }
+    }
 
     /** Temperatur der laufenden Stunde, z. B. „11°“. */
     fun current(day: WeatherDay, now: LocalDateTime): String? =

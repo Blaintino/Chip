@@ -119,7 +119,14 @@ class SubscriptionWorker(context: Context, params: WorkerParameters) : Coroutine
 
 class CalendarChangeWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        TodayWidget.refresh(applicationContext)
+        // Höchstens einmal pro Minute neu zeichnen: Google-Sync und schon das Lesen der Vorkommen
+        // (der Kalender-Provider erweitert dabei seinen Cache) melden laufend Änderungen.
+        val prefs = applicationContext.getSharedPreferences("background", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        if (now - prefs.getLong("lastChangeRefresh", 0) >= 60_000L) {
+            prefs.edit().putLong("lastChangeRefresh", now).apply()
+            TodayWidget.refresh(applicationContext)
+        }
         // Content-Auslöser gelten nur einmal: gleich wieder anmelden (nach diesem Lauf).
         Background.watchCalendarChanges(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
         return Result.success()

@@ -38,6 +38,7 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.blaintino.chip.MainActivity
 import de.blaintino.chip.data.CalendarRepository
@@ -73,10 +74,13 @@ class TodayWidget : GlanceAppWidget() {
             // deshalb lädt ein Zähler (refresh) die Daten innerhalb der laufenden Sitzung neu.
             val tick by refreshTick.collectAsState()
             var today by remember { mutableStateOf(LocalDate.now()) }
-            var state by remember { mutableStateOf<WidgetData>(WidgetData.Loading) }
+            // Mit dem letzten Inhalt starten (kein Flackern durch einen Ladezustand).
+            var state by remember { mutableStateOf<WidgetData>(WidgetCache.load(context) ?: WidgetData.Loading) }
             LaunchedEffect(tick) {
                 val day = LocalDate.now()
-                state = withContext(Dispatchers.IO) { load(context, day) }
+                val fresh = withContext(Dispatchers.IO) { load(context, day) }
+                if (fresh is WidgetData.Loaded) WidgetCache.save(context, fresh)
+                state = fresh
                 today = day
             }
             GlanceTheme {
@@ -100,11 +104,7 @@ class TodayWidget : GlanceAppWidget() {
                 calendars.firstOrNull { it.id == id && it.writable }?.let { QuickButton(it.id, it.name, it.color) }
             }
             // Wetterzeile (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis für den Rest des Tages.
-            val weather = Weather.today(context, allowFetch = true)?.let { day ->
-                val now = LocalDateTime.now()
-                listOfNotNull(WeatherText.current(day, now), WeatherText.temperatures(day), WeatherText.rainHint(day, now))
-                    .joinToString("   ").ifBlank { null }
-            }
+            val weather = Weather.today(context, allowFetch = true)?.let { WeatherText.line(it, LocalDateTime.now()) }
             WidgetStatus.record(
                 context,
                 "${events.size} anstehende Termine geladen, Wetter: " +
@@ -136,9 +136,9 @@ class TodayWidget : GlanceAppWidget() {
     }
 }
 
-private data class QuickButton(val calendarId: Long, val name: String, val color: Int)
+internal data class QuickButton(val calendarId: Long, val name: String, val color: Int)
 
-private sealed interface WidgetData {
+internal sealed interface WidgetData {
     data object Loading : WidgetData
     data object NoPermission : WidgetData
     data class Loaded(val events: List<EventInstance>, val quick: List<QuickButton>, val weather: String?) : WidgetData
@@ -183,7 +183,8 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
     // Keine Kopfzeile: Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
     // Ohne anstehende Termine stehen die Knöpfe oben (Wunsch des Nutzers), sonst unter den Terminen.
     Column(modifier = GlanceModifier.fillMaxSize()) {
-        val empty = state is WidgetData.Loaded && state.events.isEmpty()
+        // Ohne Termine – und solange noch nichts geladen ist – keine schwarze Fläche.
+        val empty = (state is WidgetData.Loaded && state.events.isEmpty()) || state is WidgetData.Loading
         val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
         val weather = (state as? WidgetData.Loaded)?.weather
         if (empty) {
@@ -202,7 +203,7 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 when (state) {
-                    WidgetData.Loading -> Hint("Lädt …")
+                    WidgetData.Loading -> Unit
                     WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
                     is WidgetData.Failed -> Hint("Fehler: ${state.message}")
                     is WidgetData.Loaded -> Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -274,7 +275,13 @@ private fun WidgetButton(
 
 @Composable
 private fun WeatherLine(text: String) {
-    Text(text = text, maxLines = 1, style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp))
+    // Zentriert (Wunsch des Nutzers).
+    Text(
+        text = text,
+        maxLines = 1,
+        modifier = GlanceModifier.fillMaxWidth(),
+        style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp, textAlign = TextAlign.Center),
+    )
 }
 
 @Composable
