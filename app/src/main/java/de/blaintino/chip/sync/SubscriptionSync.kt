@@ -30,6 +30,8 @@ object SubscriptionSync {
     private const val ACCOUNT_TYPE = CalendarContract.ACCOUNT_TYPE_LOCAL
     private const val MAX_BYTES = 20 * 1024 * 1024
     private const val BATCH = 200
+    /** Byte-Order-Mark, die manche Server vor die Datei setzen. */
+    private const val BOM = '\uFEFF'
 
     sealed interface Outcome {
         data class Updated(val count: Int, val calendarName: String?) : Outcome
@@ -184,7 +186,7 @@ object SubscriptionSync {
                             out.toByteArray()
                         }
                         return Download(
-                            body = String(bytes, Charsets.UTF_8).removePrefix("﻿"),
+                            body = String(bytes, Charsets.UTF_8).trimStart(BOM),
                             etag = conn.getHeaderField("ETag"),
                             lastModified = conn.getHeaderField("Last-Modified"),
                         )
