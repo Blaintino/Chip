@@ -19,7 +19,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   **Jahr** (12 kleine Monate, Tage mit Terminen markiert) ↔ **Monat** (Raster mit Farbpunkten, darunter
   die Termine des gewählten Tages) ↔ **Woche** ↔ **Tag** (wie die Woche, nur ein Tag, mit Ort).
   **Wischen** nach links/rechts blättert zum nächsten/vorherigen Tag, Woche, Monat oder Jahr.
-- **Plus-Knöpfe**: je ein Plus für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
+- **Plus-Knöpfe**: nebeneinander, je ein Plus mit den ersten drei Buchstaben für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
   deren Farbe), änderbar unter ⚙ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
   heute zur nächsten vollen Stunde.
 - **Heute**: Knopf neben dem Titel (Tag/Woche/Monat/Jahr) springt in der aktuellen Ansicht zu heute.

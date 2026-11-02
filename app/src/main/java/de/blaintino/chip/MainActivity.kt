@@ -304,14 +304,15 @@ private fun ChipApp(
                 if (quick.isEmpty()) {
                     FloatingActionButton(onClick = { newEvent() }) { Text("+", style = MaterialTheme.typography.headlineSmall) }
                 } else {
-                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Nebeneinander, beschriftet mit den ersten drei Buchstaben (Wunsch des Nutzers).
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         quick.forEach { cal ->
                             val bg = Color(cal.color)
                             ExtendedFloatingActionButton(
                                 onClick = { newEvent(calendarId = cal.id) },
                                 containerColor = bg,
                                 contentColor = if (bg.luminance() > 0.5f) Color.Black else Color.White,
-                            ) { Text("+  ${cal.name}") }
+                            ) { Text("+ ${cal.name.trim().take(3)}") }
                         }
                     }
                 }
