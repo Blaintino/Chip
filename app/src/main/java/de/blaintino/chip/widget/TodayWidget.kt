@@ -166,22 +166,24 @@ private val QUAELGEIST_COLOR = Color(0xFF5F6368)
 
 @Composable
 private fun WidgetContent(today: LocalDate, state: WidgetData) {
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(BG)
-            .cornerRadius(16.dp)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        // Keine Kopfzeile (Wunsch des Nutzers): Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
-        Box(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
+    // Widget selbst durchsichtig; nur der Terminbereich ist schwarz. Ohne anstehende Termine bleibt nur
+    // die Knopfreihe sichtbar (Wunsch des Nutzers: Größe kann ein Widget nicht selbst ändern).
+    // Keine Kopfzeile: Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
+    Column(modifier = GlanceModifier.fillMaxSize()) {
+        val empty = state is WidgetData.Loaded && state.events.isEmpty()
+        Box(
+            modifier = if (empty) {
+                GlanceModifier.defaultWeight().fillMaxWidth()
+            } else {
+                GlanceModifier.defaultWeight().fillMaxWidth().background(BG).cornerRadius(16.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            },
+        ) {
             when (state) {
                 WidgetData.Loading -> Hint("Lädt …")
                 WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
                 is WidgetData.Failed -> Hint("Fehler: ${state.message}")
-                is WidgetData.Loaded -> if (state.events.isEmpty()) {
-                    Hint("Keine weiteren Termine heute")
-                } else {
+                is WidgetData.Loaded -> if (state.events.isNotEmpty()) {
                     // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
                     val indexed = state.events.withIndex().toList()
                     LazyColumn(modifier = GlanceModifier.fillMaxSize()) {

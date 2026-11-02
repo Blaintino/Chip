@@ -77,7 +77,9 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   - Zeitzonen: IANA-Name, Mozilla-Präfix, Windows-Name (ICU), sonst `X-WR-TIMEZONE`, sonst Gerät.
   - WorkManager: täglich mit Netz (`Background.schedule`, auch bei jedem App-Start), beim Öffnen
     nachholen, wenn ein Abo über einen Tag alt ist.
-- **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), reines Schwarz als Hintergrund, feste helle Schrift (Wunsch des Nutzers),
+- **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), Widget durchsichtig mit reinem Schwarz
+  nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe (kein Hinweistext; ein Widget kann
+  seine Größe nicht selbst ändern), feste helle Schrift (Wunsch des Nutzers),
   scrollbare Liste mit Uhrzeit, Titel, Ort; **nur laufende und kommende Termine** (Wunsch des Nutzers,
   `WidgetFilter`, Tests `WidgetFilterTest`; ganztägige bleiben), Neuzeichnen zum nächsten Terminende
   (`Background.scheduleWidgetRefreshAt`, WorkManager, kann im Doze-Modus etwas später kommen). Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
