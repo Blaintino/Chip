@@ -100,8 +100,9 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   dauerhafte Ladeanzeige; Status war „noch nie gemeldet“, nach Entfernen und neu Platzieren lief es.
   Vermutung (nicht belegt): vor App-Updates platzierte Widgets wurden nicht neu angestoßen. Deshalb
   zeichnet `UpdateReceiver` (MY_PACKAGE_REPLACED, BOOT_COMPLETED) und jeder App-Start das Widget neu.
-- **Wetter im Widget** (Wunsch des Nutzers): zentrierte Zeile (Antippen öffnet Chip), Symbol der laufenden Stunde (WMO-Code,
-  nachts Mond, `WeatherText.icon`), aktuelle Temperatur (stündliche Vorhersage der laufenden
+- **Wetter im Widget** (Wunsch des Nutzers): zentrierte Zeile (Antippen öffnet Chip), **kein Wettersymbol** (gab es kurz, v40–v42;
+  vom Nutzer wieder gestrichen: stündlicher WMO-Code nicht eindeutig einem Zeitraum zuzuordnen, zeigte
+  Regen, wo andere Apps keinen sahen), aktuelle Temperatur (stündliche Vorhersage der laufenden
   Stunde), Höchst-/Tiefstwert und Regenhinweis (`WeatherText`,
   Schwelle 40 % für die restlichen Stunden, Tests `WeatherTextTest`) als erste Zeile der Terminfläche,
   ohne Termine als eigene kleine Fläche über den Knöpfen. Quelle Open-Meteo (frei, ohne Schlüssel,
