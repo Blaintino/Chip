@@ -60,7 +60,7 @@ import de.blaintino.chip.ui.MonthScreen
 import de.blaintino.chip.ui.WeekScreen
 import de.blaintino.chip.ui.YearScreen
 import de.blaintino.chip.ui.CalendarZoom
-import de.blaintino.chip.ui.pinchToZoom
+import de.blaintino.chip.ui.calendarGestures
 import androidx.compose.foundation.layout.Box
 import de.blaintino.chip.widget.TodayWidget
 import kotlinx.coroutines.Dispatchers
@@ -254,11 +254,14 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     ) { padding ->
         when (tab) {
             TAB_AGENDA -> AgendaScreen(repo, version, hidden, padding, onEventClick = ::openEvent)
-            // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber.
+            // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber;
+            // ein Finger waagerecht wischen = vorheriger/nächster Zeitraum.
             TAB_GRID -> Box(
-                Modifier.fillMaxSize().pinchToZoom(
+                Modifier.fillMaxSize().calendarGestures(
                     onZoomIn = { zoom = zoom.zoomIn() },
                     onZoomOut = { zoom = zoom.zoomOut() },
+                    // Wischen nach links = nächster Tag/Woche/Monat/Jahr, nach rechts = vorheriger.
+                    onSwipe = { selectedDay = zoom.shift(selectedDay, it) },
                 ),
             ) {
                 when (zoom) {
