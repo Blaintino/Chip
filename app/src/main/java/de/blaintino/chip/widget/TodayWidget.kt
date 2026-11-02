@@ -99,13 +99,17 @@ class TodayWidget : GlanceAppWidget() {
             val quick = (QuickAddCalendars.get(context) ?: emptyList()).mapNotNull { id ->
                 calendars.firstOrNull { it.id == id && it.writable }?.let { QuickButton(it.id, it.name, it.color) }
             }
-            WidgetStatus.record(context, "${events.size} anstehende Termine geladen")
             // Wetterzeile (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis für den Rest des Tages.
             val weather = Weather.today(context, allowFetch = true)?.let { day ->
                 val now = LocalDateTime.now()
                 listOfNotNull(WeatherText.current(day, now), WeatherText.temperatures(day), WeatherText.rainHint(day, now))
                     .joinToString("   ").ifBlank { null }
             }
+            WidgetStatus.record(
+                context,
+                "${events.size} anstehende Termine geladen, Wetter: " +
+                    (weather ?: if (Weather.place(context) == null) "aus" else "keine Daten"),
+            )
             WidgetData.Loaded(events, quick, weather)
         }
     } catch (e: Exception) {

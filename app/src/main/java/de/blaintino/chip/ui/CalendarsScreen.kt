@@ -476,6 +476,17 @@ private fun WeatherSettings(onChanged: () -> Unit) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<WeatherPlace>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
+    var loadVersion by remember { mutableIntStateOf(0) }
+
+    fun loadNow() {
+        status = "Wetter wird geladen …"
+        scope.launch {
+            withContext(Dispatchers.IO) { Weather.today(context, allowFetch = true, force = true) }
+            status = null
+            loadVersion++
+            onChanged()
+        }
+    }
 
     fun search() {
         if (query.isBlank()) return
@@ -517,21 +528,35 @@ private fun WeatherSettings(onChanged: () -> Unit) {
                     place = r
                     results = emptyList()
                     query = ""
-                    status = "Wetter wird geladen …"
-                    scope.launch {
-                        withContext(Dispatchers.IO) { Weather.today(context, allowFetch = true) }
-                        status = null
-                        onChanged()
-                    }
+                    loadNow()
                 }.padding(vertical = 8.dp, horizontal = 4.dp),
             )
         }
         if (place != null) {
-            TextButton(onClick = {
-                Weather.setPlace(context, null)
-                place = null
-                onChanged()
-            }) { Text("Wetter aus") }
+            // Letzter Abruf und heutige Werte, damit Fehler ohne adb sichtbar sind.
+            val info = remember(loadVersion, place) {
+                val last = Weather.lastStatus(context)
+                val day = Weather.today(context, allowFetch = false)
+                val line = day?.let { d ->
+                    val now = java.time.LocalDateTime.now()
+                    listOfNotNull(WeatherText.current(d, now), WeatherText.temperatures(d), WeatherText.rainHint(d, now))
+                        .joinToString("   ")
+                }
+                listOfNotNull(
+                    last?.let { (t, s) -> "Zuletzt geladen: ${Formats.dateTime(t)} – $s" } ?: "Noch nicht geladen",
+                    line?.takeIf { it.isNotBlank() }?.let { "Heute: $it" },
+                ).joinToString("\n")
+            }
+            Text(info, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row {
+                OutlinedButton(onClick = ::loadNow) { Text("Wetter jetzt laden") }
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = {
+                    Weather.setPlace(context, null)
+                    place = null
+                    onChanged()
+                }) { Text("Wetter aus") }
+            }
         }
         Text(
             "Höchst-/Tiefstwert und Regenhinweis ab ${WeatherText.RAIN_THRESHOLD} % für den Rest des Tages, stündlich aktualisiert. " +
