@@ -16,8 +16,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
-- Auf dem Handy installiert (v6, 2026-11-02): Kalender werden angezeigt. Abos, Widget und Editor
-  dort noch nicht bestätigt. Cloud-Sessions haben weder Emulator noch Handy.
+- Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v21, 2026-11-02): Kalender, Woche/Tag/
+  Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
+  Kalenderfarben, Widget mit Knöpfen (auch „+ Quälgeist“ mit Quälgeist v49). ICS-Abos dort noch nicht
+  ausdrücklich bestätigt. Cloud-Sessions haben weder Emulator noch Handy.
+- Arbeitsweise (Wunsch des Nutzers): Wünsche sammeln, auf dem Arbeitsbranch umsetzen (CI dort nur
+  Test-Build), Release (= Merge nach `main`) erst auf Ansage.
 
 ## Aufbau und Regeln
 
