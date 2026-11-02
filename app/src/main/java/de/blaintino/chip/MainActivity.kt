@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.luminance
 import de.blaintino.chip.data.QuickAddCalendars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
