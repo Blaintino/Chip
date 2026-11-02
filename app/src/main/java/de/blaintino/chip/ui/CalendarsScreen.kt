@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import de.blaintino.chip.data.CalendarColors
 import de.blaintino.chip.data.CalendarInfo
 import de.blaintino.chip.data.CalendarRepository
 import de.blaintino.chip.data.Formats
@@ -66,6 +67,7 @@ fun CalendarsScreen(
     version: Int,
     hidden: Set<Long>,
     onHiddenChange: (Set<Long>) -> Unit,
+    onColorsChanged: () -> Unit,
     quickIds: List<Long?>,
     onQuickIdsChange: (List<Long?>) -> Unit,
     prefillUrl: String?,
@@ -82,6 +84,7 @@ fun CalendarsScreen(
     var showAdd by remember { mutableStateOf(false) }
     var addUrl by remember { mutableStateOf("") }
     var confirmDelete by remember { mutableStateOf<Subscription?>(null) }
+    var colorFor by remember { mutableStateOf<CalendarInfo?>(null) }
 
     LaunchedEffect(version, localVersion) {
         val (c, s) = withContext(Dispatchers.IO) { repo.calendars() to SubscriptionStore.all(context) }
@@ -120,7 +123,7 @@ fun CalendarsScreen(
         }
         items(subs, key = { "s${it.calendarId}" }) { sub ->
             SubscriptionCard(
-                sub = sub,
+                sub = sub.copy(color = calendars.firstOrNull { it.id == sub.calendarId }?.color ?: sub.color),
                 enabled = busy == null,
                 onRefresh = {
                     runBusy("Aktualisiere „${sub.name}“ …") {
@@ -212,7 +215,8 @@ fun CalendarsScreen(
         item { SectionLabel("In Chip anzeigen") }
         item {
             Text(
-                "Geteilte Google-Kalender erscheinen hier, sobald das Google-Konto sie synchronisiert. " +
+                "Häkchen = in Chip anzeigen und für neue Termine wählbar; Farbpunkt antippen = Farbe ändern. " +
+                    "Geteilte Google-Kalender erscheinen hier, sobald das Google-Konto sie synchronisiert. " +
                     "Fehlt einer: in den Kontoeinstellungen des Handys bzw. der Google-Kalender-App die Synchronisierung für ihn einschalten.",
                 modifier = Modifier.padding(horizontal = 16.dp),
                 style = MaterialTheme.typography.bodySmall,
@@ -242,8 +246,10 @@ fun CalendarsScreen(
                         checked = cal.id !in hidden,
                         onCheckedChange = { show -> onHiddenChange(if (show) hidden - cal.id else hidden + cal.id) },
                     )
-                    ColorDot(cal.color, size = 12)
-                    Spacer(Modifier.width(8.dp))
+                    // Farbpunkt antippen: eigene Farbe wählen.
+                    Box(Modifier.clip(CircleShape).clickable { colorFor = cal }.padding(8.dp)) {
+                        ColorDot(cal.color, size = 18)
+                    }
                     Text(cal.name, modifier = Modifier.weight(1f))
                     if (!cal.writable) {
                         Text("nur lesen", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -265,6 +271,40 @@ fun CalendarsScreen(
                     val (sub, outcome) = withContext(Dispatchers.IO) { SubscriptionSync.add(context, url, name, color) }
                     "„${sub.name}“: " + describe(outcome)
                 }
+            },
+        )
+    }
+
+    colorFor?.let { cal ->
+        var picked by remember(cal.id) { mutableIntStateOf(cal.color) }
+        AlertDialog(
+            onDismissRequest = { colorFor = null },
+            title = { Text("Farbe für „${cal.name}“") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ColorPicker(picked, onPick = { picked = it })
+                    Text(
+                        "Gilt nur in Chip (App, Widget, Plus-Knöpfe). Termine mit eigener Farbe behalten diese.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    CalendarColors.set(context, cal.id, picked)
+                    colorFor = null
+                    localVersion++
+                    onColorsChanged()
+                }) { Text("Übernehmen") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    CalendarColors.set(context, cal.id, null)
+                    colorFor = null
+                    localVersion++
+                    onColorsChanged()
+                }) { Text("Kontofarbe") }
             },
         )
     }

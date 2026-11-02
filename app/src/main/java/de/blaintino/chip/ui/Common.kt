@@ -90,6 +90,21 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 /** Feste Auswahl an Kalenderfarben für Abos. */
 val CALENDAR_COLORS = listOf(
-    0xFF00796B, 0xFF1E88E5, 0xFF8E24AA, 0xFFD81B60, 0xFFE53935,
-    0xFFF4511E, 0xFFF6BF26, 0xFF33B679, 0xFF616161, 0xFF795548,
+    0xFFD50000, 0xFFE67C73, 0xFFF4511E, 0xFFF6BF26, 0xFF33B679,
+    0xFF0B8043, 0xFF039BE5, 0xFF3F51B5, 0xFF7986CB, 0xFF8E24AA,
+    0xFFD81B60, 0xFF00796B, 0xFF795548, 0xFF616161, 0xFF000000,
 ).map { it.toInt() }
+
+/** Ordnet jedes Vorkommen allen Tagen zwischen Start- und Endtag zu (innerhalb von [from]..[to]). */
+fun groupByDay(events: List<EventInstance>, from: LocalDate, to: LocalDate): List<Pair<LocalDate, List<EventInstance>>> {
+    val map = sortedMapOf<LocalDate, MutableList<EventInstance>>()
+    for (ev in events) {
+        var d = maxOf(ev.startDay, from)
+        val last = minOf(ev.endDay, to)
+        while (d <= last) {
+            map.getOrPut(d) { mutableListOf() } += ev
+            d = d.plusDays(1)
+        }
+    }
+    return map.map { (day, list) -> day to list.sortedWith(compareBy({ !it.allDay }, { it.begin })) }
+}

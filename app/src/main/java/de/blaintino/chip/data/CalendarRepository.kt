@@ -17,8 +17,11 @@ data class CalendarInfo(
     val name: String,
     val accountName: String,
     val accountType: String,
+    /** Angezeigte Farbe (eigene Farbe aus [CalendarColors], sonst die des Kontos). */
     val color: Int,
     val writable: Boolean,
+    /** Farbe laut Konto, für „Zurücksetzen“. */
+    val accountColor: Int = color,
 )
 
 /** Ein Vorkommen eines Termins (bei Serien: ein einzelner Termin der Serie). */
@@ -74,6 +77,7 @@ class CalendarRepository(context: Context) {
             CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
         )
         val result = mutableListOf<CalendarInfo>()
+        val overrides = CalendarColors.get(appContext)
         resolver.query(
             CalendarContract.Calendars.CONTENT_URI, projection,
             "${CalendarContract.Calendars.SYNC_EVENTS} = 1", null,
@@ -85,8 +89,9 @@ class CalendarRepository(context: Context) {
                     name = c.getString(1) ?: "(ohne Namen)",
                     accountName = c.getString(2) ?: "",
                     accountType = c.getString(3) ?: "",
-                    color = c.getInt(4),
+                    color = overrides[c.getLong(0)] ?: c.getInt(4),
                     writable = c.getInt(5) >= CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR,
+                    accountColor = c.getInt(4),
                 )
             }
         }
@@ -117,8 +122,10 @@ class CalendarRepository(context: Context) {
             CalendarContract.Instances.RDATE,
             CalendarContract.Instances.START_DAY,
             CalendarContract.Instances.END_DAY,
+            CalendarContract.Instances.EVENT_COLOR,
         )
         val result = mutableListOf<EventInstance>()
+        val overrides = CalendarColors.get(appContext)
         resolver.query(uri, projection, null, null, "${CalendarContract.Instances.BEGIN} ASC")?.use { c ->
             while (c.moveToNext()) {
                 val calendarId = c.getLong(1)
@@ -136,7 +143,8 @@ class CalendarRepository(context: Context) {
                     begin = c.getLong(4),
                     end = c.getLong(5),
                     allDay = c.getInt(6) == 1,
-                    color = c.getInt(7),
+                    // Eigene Terminfarbe bleibt, sonst eigene Kalenderfarbe, sonst die des Kontos.
+                    color = if (!c.isNull(12) && c.getInt(12) != 0) c.getInt(7) else overrides[calendarId] ?: c.getInt(7),
                     recurring = !c.getString(8).isNullOrEmpty() || !c.getString(9).isNullOrEmpty(),
                     startDay = startDay,
                     endDay = endDay,

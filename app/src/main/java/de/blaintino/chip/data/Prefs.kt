@@ -92,7 +92,7 @@ object SubscriptionStore {
 
 /**
  * Kalender der Plus-Knöpfe (Schnellauswahl, Wunsch des Nutzers: „Langners“ und „Arbeit“).
- * Gespeichert als Kalender-IDs; beim ersten Start nach Namen vorbelegt, danach im Tab „Kalender“
+ * Gespeichert als Kalender-IDs; beim ersten Start nach Namen vorbelegt, danach in den Einstellungen (⚙)
  * änderbar. Leere Liste = ein einfacher Plus-Knopf mit dem Standardkalender.
  */
 object QuickAddCalendars {
@@ -115,4 +115,26 @@ object QuickAddCalendars {
     /** Vorbelegung nach Namen (ohne Groß-/Kleinschreibung) unter den beschreibbaren Kalendern. */
     fun defaults(calendars: List<CalendarInfo>): List<Long?> =
         DEFAULT_NAMES.map { name -> calendars.firstOrNull { it.writable && it.name.equals(name, ignoreCase = true) }?.id }
+}
+
+/**
+ * Eigene Kalenderfarben (Wunsch des Nutzers). Nur in Chip (App, Widget, Plus-Knöpfe): Die Farbe eines
+ * Google-Kalenders darf eine fremde App in CalendarContract nicht dauerhaft ändern (nur der
+ * Sync-Adapter), sie würde beim nächsten Sync überschrieben. Termine mit eigener Terminfarbe behalten diese.
+ */
+object CalendarColors {
+    private const val PREFS = "calendar_colors"
+
+    fun get(context: Context): Map<Long, Int> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.mapNotNull { (k, v) ->
+            val id = k.toLongOrNull() ?: return@mapNotNull null
+            (v as? Int)?.let { id to it }
+        }.toMap()
+
+    /** [color] = null setzt auf die Farbe des Kontos zurück. */
+    fun set(context: Context, calendarId: Long, color: Int?) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
+            if (color == null) remove(calendarId.toString()) else putInt(calendarId.toString(), color)
+        }.commit()
+    }
 }
