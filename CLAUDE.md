@@ -39,6 +39,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   (Nachttermine bleiben im Raster). Woche/Tag: Leiste oben mit durchgehenden Balken über alle Tage
   (`SpanLayout.lanes`, Tests `SpanLayoutTest`; runde Enden nur bei echtem Beginn/Ende, Tag zeigt „(k/n)“),
   Monat: verbundene dünne Balken unten in den Zellen statt Punkten, Jahr: durchgehende Linie unter den Tagen.
+  Achtung (Fehler in v53, vom Nutzer gemeldet): Inhalte von `BoxWithConstraints` laufen erst beim Layout –
+  dort nie Schleifenvariablen (`var weekStart`) lesen, sondern je Durchlauf feste Werte (`ws`).
 - Eigene Kalenderfarben (`CalendarColors`, Wunsch des Nutzers) nur in Chip: `CALENDAR_COLOR` darf nur
   der Sync-Adapter ändern (Google würde es überschreiben). Angewendet in `CalendarRepository`
   (`calendars()`/`instances()`); Termine mit eigener `EVENT_COLOR` behalten ihre Farbe.

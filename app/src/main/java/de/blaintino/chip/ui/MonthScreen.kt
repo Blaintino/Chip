@@ -131,7 +131,9 @@ fun MonthScreen(
                     val cellH = cellW / CELL_RATIO
                     Row(Modifier.fillMaxWidth()) {
                         for (i in 0L until 7L) {
-                            val day = weekStart.plusDays(i)
+                            // ws (fest je Zeile), nicht weekStart: der Inhalt von BoxWithConstraints läuft erst beim Layout,
+                            // dann zeigt die Schleifenvariable schon hinter den Monat (alle Zeilen hießen „1–7“).
+                            val day = ws.plusDays(i)
                             DayCell(
                                 day = day,
                                 inMonth = YearMonth.from(day) == month,
