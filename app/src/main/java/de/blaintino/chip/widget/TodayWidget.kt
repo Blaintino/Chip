@@ -279,7 +279,8 @@ private fun WeatherLine(text: String) {
     Text(
         text = text,
         maxLines = 1,
-        modifier = GlanceModifier.fillMaxWidth(),
+        // Antippen öffnet Chip (Wunsch des Nutzers).
+        modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity<MainActivity>()),
         style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp, textAlign = TextAlign.Center),
     )
 }
