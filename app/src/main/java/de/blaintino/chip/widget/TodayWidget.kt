@@ -187,15 +187,12 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
         val empty = (state is WidgetData.Loaded && state.events.isEmpty()) || state is WidgetData.Loading
         val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
         val weather = (state as? WidgetData.Loaded)?.weather
+        // Wetter als eigene Pille, so breit wie ihr Inhalt, mittig, abgesetzt von den Terminen (Wunsch des Nutzers).
+        if (weather != null) {
+            WeatherPill(weather)
+            Spacer(GlanceModifier.height(6.dp))
+        }
         if (empty) {
-            // Ohne Termine: Wetter als eigene kleine Fläche über den Knöpfen.
-            if (weather != null) {
-                Box(
-                    modifier = GlanceModifier.fillMaxWidth().background(BG).cornerRadius(16.dp)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                ) { WeatherLine(weather) }
-                Spacer(GlanceModifier.height(6.dp))
-            }
             ButtonRow(quick)
         } else {
             Box(
@@ -206,11 +203,7 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
                     WidgetData.Loading -> Unit
                     WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
                     is WidgetData.Failed -> Hint("Fehler: ${state.message}")
-                    is WidgetData.Loaded -> Column(modifier = GlanceModifier.fillMaxSize()) {
-                        if (weather != null) {
-                            WeatherLine(weather)
-                            Spacer(GlanceModifier.height(4.dp))
-                        }
+                    is WidgetData.Loaded -> {
                         // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
                         val indexed = state.events.withIndex().toList()
                         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
@@ -274,15 +267,22 @@ private fun WidgetButton(
 }
 
 @Composable
-private fun WeatherLine(text: String) {
-    // Zentriert (Wunsch des Nutzers).
-    Text(
-        text = text,
-        maxLines = 1,
-        // Antippen öffnet Chip (Wunsch des Nutzers).
-        modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity<MainActivity>()),
-        style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp, textAlign = TextAlign.Center),
-    )
+private fun WeatherPill(text: String) {
+    // Mittig über die volle Breite, die Pille selbst nur so breit wie der Text (wie die Knöpfe, 36 dp hoch).
+    Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            // Antippen öffnet Chip (Wunsch des Nutzers).
+            modifier = GlanceModifier.height(36.dp).cornerRadius(18.dp).background(BG)
+                .padding(horizontal = 16.dp).clickable(actionStartActivity<MainActivity>()),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = text,
+                maxLines = 1,
+                style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 13.sp, textAlign = TextAlign.Center),
+            )
+        }
+    }
 }
 
 @Composable
