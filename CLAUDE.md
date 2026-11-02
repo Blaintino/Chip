@@ -73,8 +73,10 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Daten werden **innerhalb der Komposition** geladen (`LaunchedEffect` auf `refreshTick`), nicht vor
   `provideContent`: Läuft die Glance-Sitzung schon, ruft ein Update `provideGlance` nicht erneut auf.
   Fehler erscheinen als Text im Widget; `WidgetStatus` (Zeit + Meldung) steht im Tab „Kalender“ mit
-  Knopf „Widget neu zeichnen“ – zur Fehlersuche am Handy ohne adb (Nutzer meldete 2026-11-02 eine
-  dauerhafte Ladeanzeige, Ursache noch offen).
+  Knopf „Widget neu zeichnen“ – zur Fehlersuche am Handy ohne adb. Nutzer meldete 2026-11-02 eine
+  dauerhafte Ladeanzeige; Status war „noch nie gemeldet“, nach Entfernen und neu Platzieren lief es.
+  Vermutung (nicht belegt): vor App-Updates platzierte Widgets wurden nicht neu angestoßen. Deshalb
+  zeichnet `UpdateReceiver` (MY_PACKAGE_REPLACED, BOOT_COMPLETED) und jeder App-Start das Widget neu.
 - Neue Abhängigkeiten nur mit gutem Grund. Aktuell: Compose, Core-KTX, Activity-Compose,
   Lifecycle, WorkManager, Glance.
 - Debug-Build: App-ID `de.blaintino.chip.debug`, Name über den Manifest-Platzhalter `appLabel`.

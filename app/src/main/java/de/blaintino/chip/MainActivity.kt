@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -90,6 +91,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         if (savedInstanceState == null) pendingWebcal = webcalFrom(intent)
         Background.schedule(this)
+        // Widget bei jedem Start neu zeichnen (falls es nach einem Update hängen geblieben ist).
+        lifecycleScope.launch { TodayWidget.refresh(applicationContext) }
         setContent {
             ChipTheme {
                 ChipApp(pendingWebcal, onWebcalHandled = { pendingWebcal = null })
