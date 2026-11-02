@@ -13,6 +13,8 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import kotlin.math.abs
 
 /** Detailstufen der Kalenderansicht, von fein nach grob. */
@@ -119,3 +121,27 @@ fun Modifier.calendarGestures(
         }
     }
 }
+
+/**
+ * Bildschirmbereiche der Tage (Woche: Spalten, Monat: Zellen, Jahr: Monate am Monatsersten) der gerade
+ * angezeigten Ansicht. Damit zoomt Pinch zu dem Tag/Monat, über dem die Geste beginnt (Wunsch des Nutzers).
+ * Nur die aktuelle Ansicht trägt sich ein (`LocalDayBounds` ist bei Nachbarn und Pinch-Ziel null).
+ */
+class DayBounds {
+    private val rects = mutableMapOf<java.time.LocalDate, androidx.compose.ui.geometry.Rect>()
+
+    fun put(day: java.time.LocalDate, rect: androidx.compose.ui.geometry.Rect) { rects[day] = rect }
+
+    /** Tag unter [point] (Fensterkoordinaten); [xOnly]: nur waagerecht vergleichen (Wochenspalten). */
+    fun dayAt(point: Offset, xOnly: Boolean = false): java.time.LocalDate? =
+        rects.entries.firstOrNull { (_, r) ->
+            point.x >= r.left && point.x < r.right && (xOnly || (point.y >= r.top && point.y < r.bottom))
+        }?.key
+}
+
+val LocalDayBounds = androidx.compose.runtime.staticCompositionLocalOf<DayBounds?> { null }
+
+/** Trägt den Bereich dieses Elements für [day] in die aktuellen [DayBounds] ein (falls vorhanden). */
+fun Modifier.dayBounds(registry: DayBounds?, day: java.time.LocalDate): Modifier =
+    if (registry == null) this
+    else this.then(Modifier.onGloballyPositioned { registry.put(day, it.boundsInWindow()) })

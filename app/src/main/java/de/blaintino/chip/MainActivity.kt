@@ -27,6 +27,11 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import de.blaintino.chip.ui.PINCH_START_IN
+import de.blaintino.chip.ui.DayBounds
+import de.blaintino.chip.ui.LocalDayBounds
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import de.blaintino.chip.ui.PINCH_START_OUT
 import kotlin.math.abs
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,6 +50,7 @@ import androidx.compose.ui.graphics.luminance
 import de.blaintino.chip.data.QuickAddCalendars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -265,6 +271,10 @@ private fun ChipApp(
     var pinchInto by remember { mutableStateOf(true) }
     var pinchP by remember { mutableFloatStateOf(0f) }
     var pinchOrigin by remember { mutableStateOf(TransformOrigin.Center) }
+    // Tag/Monat unter den Fingern zu Beginn der Geste: dorthin wird gezoomt (Wunsch des Nutzers).
+    var pinchDay by remember { mutableStateOf(LocalDate.now()) }
+    var stageOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val dayRegistry = remember(zoom, selectedDay) { DayBounds() }
     val motion = tween<Float>(durationMillis = 280, easing = FastOutSlowInEasing)
 
     /** Wischen abschließen: [dir] = 1 nächster, -1 vorheriger Zeitraum, 0 zurückfedern. */
@@ -290,7 +300,10 @@ private fun ChipApp(
         val target = pinchTarget ?: return
         animating = true
         animate(pinchP, if (commit) 1f else 0f, animationSpec = motion) { v, _ -> pinchP = v }
-        if (commit) zoom = target
+        if (commit) {
+            zoom = target
+            selectedDay = pinchDay
+        }
         pinchTarget = null
         pinchP = 0f
         animating = false
@@ -366,7 +379,7 @@ private fun ChipApp(
                     if (showSettings) {
                         Text("Einstellungen")
                     } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             // Titel = aktuelle Ansicht; Antippen öffnet die Auswahl (Fallback zur Pinch-Geste).
                             Box {
                                 TextButton(onClick = { zoomMenu = true }) {
@@ -384,13 +397,15 @@ private fun ChipApp(
                                     }
                                 }
                             }
-                            Spacer(Modifier.width(8.dp))
+                            // Mittig zwischen Titel und Zahnrad (Wunsch des Nutzers).
+                            Spacer(Modifier.weight(1f))
                             // Springt in der aktuellen Ansicht zu heute (Wunsch des Nutzers).
                             OutlinedButton(
                                 onClick = { selectedDay = LocalDate.now() },
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                 modifier = Modifier.height(32.dp),
                             ) { Text("Heute", style = MaterialTheme.typography.labelLarge) }
+                            Spacer(Modifier.weight(1f))
                         }
                     }
                 },
@@ -457,6 +472,7 @@ private fun ChipApp(
                         pageWidth = it.width.toFloat().coerceAtLeast(1f)
                         pageHeight = it.height.toFloat().coerceAtLeast(1f)
                     }
+                    .onGloballyPositioned { stageOffset = it.positionInWindow() }
                     .calendarGestures(
                     onDrag = { dx -> if (!animating) dragX += dx },
                     onDragEnd = { velocity ->
@@ -477,6 +493,13 @@ private fun ChipApp(
                                     else -> null
                                 }
                                 if (target != null && target != zoom) {
+                                    val under = dayRegistry.dayAt(centroid + stageOffset, xOnly = zoom == CalendarZoom.WEEK)
+                                    pinchDay = when {
+                                        under == null -> selectedDay
+                                        // Jahr: Monate sind am Monatsersten eingetragen; im gewählten Monat den Tag behalten.
+                                        zoom == CalendarZoom.YEAR && java.time.YearMonth.from(under) == java.time.YearMonth.from(selectedDay) -> selectedDay
+                                        else -> under
+                                    }
                                     pinchTarget = target
                                     pinchInto = target.ordinal < zoom.ordinal
                                     pinchOrigin = TransformOrigin(
@@ -501,7 +524,7 @@ private fun ChipApp(
                     if (dragX != 0f) add(Triple(zoom, zoom.shift(selectedDay, -1), -1))
                     add(Triple(zoom, selectedDay, 0))
                     if (dragX != 0f) add(Triple(zoom, zoom.shift(selectedDay, 1), 1))
-                    pinchTarget?.let { add(Triple(it, selectedDay, 2)) }
+                    pinchTarget?.let { add(Triple(it, pinchDay, 2)) }
                 }
                 for ((level, day, role) in pages) {
                     key(level, day) {
@@ -526,7 +549,12 @@ private fun ChipApp(
                                     }
                                 }
                                 .background(bg),
-                        ) { CalendarPage(level, day, padding) }
+                        ) {
+                            // Nur die aktuelle Ansicht meldet ihre Tagesbereiche (für das Zoomziel).
+                            CompositionLocalProvider(LocalDayBounds provides if (role == 0) dayRegistry else null) {
+                                CalendarPage(level, day, padding)
+                            }
+                        }
                     }
                 }
             }
