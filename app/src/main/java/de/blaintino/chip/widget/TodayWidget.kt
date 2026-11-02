@@ -173,12 +173,7 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
             .cornerRadius(16.dp)
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        Text(
-            text = Formats.dayHeader(today, today),
-            modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
-            style = TextStyle(color = TEXT, fontWeight = FontWeight.Bold, fontSize = 15.sp),
-        )
-        Spacer(GlanceModifier.height(6.dp))
+        // Keine Kopfzeile (Wunsch des Nutzers): Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
         Box(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
             when (state) {
                 WidgetData.Loading -> Hint("Lädt …")
