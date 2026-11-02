@@ -16,6 +16,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import de.blaintino.chip.ui.PINCH_START_IN
+import de.blaintino.chip.ui.PINCH_START_OUT
+import kotlin.math.abs
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -243,6 +256,97 @@ private fun ChipApp(
     // Einstellungen (früher Tab „Kalender“) als eigener Bildschirm über das Zahnrad; Zurück schließt ihn.
     BackHandler(enabled = showSettings) { showSettings = false }
 
+    // Wischen und Pinch (siehe calendarGestures).
+    var dragX by remember { mutableFloatStateOf(0f) }
+    var pageWidth by remember { mutableFloatStateOf(1f) }
+    var pageHeight by remember { mutableFloatStateOf(1f) }
+    var animating by remember { mutableStateOf(false) }
+    var pinchTarget by remember { mutableStateOf<CalendarZoom?>(null) }
+    var pinchInto by remember { mutableStateOf(true) }
+    var pinchP by remember { mutableFloatStateOf(0f) }
+    var pinchOrigin by remember { mutableStateOf(TransformOrigin.Center) }
+    val motion = tween<Float>(durationMillis = 280, easing = FastOutSlowInEasing)
+
+    /** Wischen abschließen: [dir] = 1 nächster, -1 vorheriger Zeitraum, 0 zurückfedern. */
+    suspend fun settleSwipe(dir: Int) {
+        animating = true
+        animate(dragX, if (dir == 0) 0f else -dir * pageWidth, animationSpec = motion) { v, _ -> dragX = v }
+        if (dir != 0) selectedDay = zoom.shift(selectedDay, dir)
+        dragX = 0f
+        animating = false
+    }
+
+    /** Pfeile im Kopf der Ansichten: dieselbe Bewegung wie Wischen. */
+    fun animateShift(dir: Int) {
+        if (animating) return
+        scope.launch {
+            dragX = -dir * 1f // Nachbarn einblenden
+            settleSwipe(dir)
+        }
+    }
+
+    /** Pinch abschließen: zur Zielstufe wechseln oder zurückfedern. */
+    suspend fun settlePinch(commit: Boolean) {
+        val target = pinchTarget ?: return
+        animating = true
+        animate(pinchP, if (commit) 1f else 0f, animationSpec = motion) { v, _ -> pinchP = v }
+        if (commit) zoom = target
+        pinchTarget = null
+        pinchP = 0f
+        animating = false
+    }
+
+    /** Auswahl eines Tags; Sprung um genau einen Zeitraum (Pfeile) wird animiert. */
+    fun select(day: LocalDate) {
+        when (day) {
+            zoom.shift(selectedDay, 1) -> animateShift(1)
+            zoom.shift(selectedDay, -1) -> animateShift(-1)
+            else -> selectedDay = day
+        }
+    }
+
+    @Composable
+    fun CalendarPage(level: CalendarZoom, day: LocalDate, pad: PaddingValues) {
+        when (level) {
+            CalendarZoom.DAY, CalendarZoom.WEEK -> WeekScreen(
+                repo = repo,
+                dayCount = if (level == CalendarZoom.DAY) 1 else 7,
+                version = version,
+                hidden = hidden,
+                selected = day,
+                onSelect = ::select,
+                contentPadding = pad,
+                onEventClick = ::openEvent,
+                onCreateAt = { newEvent(it) },
+            )
+            CalendarZoom.MONTH -> MonthScreen(
+                repo, version, hidden, day,
+                onSelect = ::select,
+                contentPadding = pad,
+                onEventClick = ::openEvent,
+                onCreateOn = { d ->
+                    val now = LocalDateTime.now()
+                    newEvent(
+                        at = if (d == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+                        else d.atTime(9, 0),
+                    )
+                },
+            )
+            CalendarZoom.YEAR -> YearScreen(
+                repo = repo,
+                version = version,
+                hidden = hidden,
+                selected = day,
+                onSelect = ::select,
+                onOpenMonth = {
+                    selectedDay = it
+                    zoom = CalendarZoom.MONTH
+                },
+                contentPadding = pad,
+            )
+        }
+    }
+
     // Widget-Plus: sobald die Kalender geladen sind, „Neuer Termin“ im gewählten Kalender öffnen.
     LaunchedEffect(pendingNewEvent, calendars) {
         val id = pendingNewEvent ?: return@LaunchedEffect
@@ -343,52 +447,87 @@ private fun ChipApp(
                 contentPadding = padding,
             )
         } else {
-            // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber;
-            // ein Finger waagerecht wischen = vorheriger/nächster Zeitraum.
+            // Gesten mit laufender Rückmeldung (Wunsch des Nutzers, Mockup „Chip Gesten-Mockup“):
+            // Wischen – die Ansicht folgt dem Finger, die Nachbarn liegen links/rechts bereit, beim Loslassen
+            // schiebt sie sich weg oder federt zurück; Pinch – aktuelle und Ziel-Ansicht skalieren und blenden
+            // mit den Fingern über (aufziehen = feiner aus dem gewählten Tag heraus, zusammenschieben = gröber).
             Box(
-                Modifier.fillMaxSize().calendarGestures(
-                    onZoomIn = { zoom = zoom.zoomIn() },
-                    onZoomOut = { zoom = zoom.zoomOut() },
-                    onSwipe = { selectedDay = zoom.shift(selectedDay, it) },
+                Modifier.fillMaxSize().clipToBounds()
+                    .onSizeChanged {
+                        pageWidth = it.width.toFloat().coerceAtLeast(1f)
+                        pageHeight = it.height.toFloat().coerceAtLeast(1f)
+                    }
+                    .calendarGestures(
+                    onDrag = { dx -> if (!animating) dragX += dx },
+                    onDragEnd = { velocity ->
+                        if (!animating) {
+                            val dir = when {
+                                abs(dragX) > pageWidth * 0.25f || abs(velocity) > 1200f -> if (dragX + velocity * 0.05f < 0) 1 else -1
+                                else -> 0
+                            }
+                            scope.launch { settleSwipe(dir) }
+                        }
+                    },
+                    onPinch = { factor, centroid ->
+                        if (!animating) {
+                            if (pinchTarget == null) {
+                                val target = when {
+                                    factor > PINCH_START_IN -> zoom.zoomIn()
+                                    factor < PINCH_START_OUT -> zoom.zoomOut()
+                                    else -> null
+                                }
+                                if (target != null && target != zoom) {
+                                    pinchTarget = target
+                                    pinchInto = target.ordinal < zoom.ordinal
+                                    pinchOrigin = TransformOrigin(
+                                        (centroid.x / pageWidth).coerceIn(0f, 1f),
+                                        (centroid.y / pageHeight).coerceIn(0f, 1f),
+                                    )
+                                }
+                            }
+                            if (pinchTarget != null) {
+                                pinchP = (if (pinchInto) (factor - 1f) / 0.6f else (1f - factor) / 0.4f).coerceIn(0f, 1f)
+                            }
+                        }
+                    },
+                    onPinchEnd = { if (pinchTarget != null && !animating) scope.launch { settlePinch(pinchP > 0.45f) } },
                 ),
             ) {
-                when (zoom) {
-                    CalendarZoom.DAY, CalendarZoom.WEEK -> WeekScreen(
-                        repo = repo,
-                        dayCount = if (zoom == CalendarZoom.DAY) 1 else 7,
-                        version = version,
-                        hidden = hidden,
-                        selected = selectedDay,
-                        onSelect = { selectedDay = it },
-                        contentPadding = padding,
-                        onEventClick = ::openEvent,
-                        onCreateAt = { newEvent(it) },
-                    )
-                    CalendarZoom.MONTH -> MonthScreen(
-                        repo, version, hidden, selectedDay,
-                        onSelect = { selectedDay = it },
-                        contentPadding = padding,
-                        onEventClick = ::openEvent,
-                        onCreateOn = { day ->
-                            val now = LocalDateTime.now()
-                            newEvent(
-                                at = if (day == now.toLocalDate()) now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
-                                else day.atTime(9, 0),
-                            )
-                        },
-                    )
-                    CalendarZoom.YEAR -> YearScreen(
-                        repo = repo,
-                        version = version,
-                        hidden = hidden,
-                        selected = selectedDay,
-                        onSelect = { selectedDay = it },
-                        onOpenMonth = {
-                            selectedDay = it
-                            zoom = CalendarZoom.MONTH
-                        },
-                        contentPadding = padding,
-                    )
+                val bg = MaterialTheme.colorScheme.background
+                // Alle Seiten in einer Schleife mit Schlüssel (Stufe, Datum): Wird ein Nachbar oder das Pinch-Ziel
+                // zur aktuellen Ansicht, bleibt sein Zustand (geladene Termine, Scrollstand) erhalten – kein Flackern.
+                val pages = buildList {
+                    // Nachbarn nur, wenn gewischt wird (spart das Laden zweier weiterer Ansichten).
+                    if (dragX != 0f) add(Triple(zoom, zoom.shift(selectedDay, -1), -1))
+                    add(Triple(zoom, selectedDay, 0))
+                    if (dragX != 0f) add(Triple(zoom, zoom.shift(selectedDay, 1), 1))
+                    pinchTarget?.let { add(Triple(it, selectedDay, 2)) }
+                }
+                for ((level, day, role) in pages) {
+                    key(level, day) {
+                        Box(
+                            Modifier.fillMaxSize()
+                                .graphicsLayer {
+                                    val p = pinchP
+                                    when (role) {
+                                        2 -> { // Pinch-Ziel
+                                            transformOrigin = pinchOrigin
+                                            val sc = if (pinchInto) 0.3f + 0.7f * p else 1.9f - 0.9f * p
+                                            scaleX = sc; scaleY = sc; alpha = p
+                                        }
+                                        else -> {
+                                            translationX = dragX + role * pageWidth
+                                            if (role == 0 && pinchTarget != null) {
+                                                transformOrigin = pinchOrigin
+                                                val sc = if (pinchInto) 1f + 0.8f * p else 1f - 0.55f * p
+                                                scaleX = sc; scaleY = sc; alpha = 1f - p
+                                            }
+                                        }
+                                    }
+                                }
+                                .background(bg),
+                        ) { CalendarPage(level, day, padding) }
+                    }
                 }
             }
         }
