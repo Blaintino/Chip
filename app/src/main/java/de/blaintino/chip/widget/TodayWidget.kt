@@ -169,51 +169,57 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
     // Widget selbst durchsichtig; nur der Terminbereich ist schwarz. Ohne anstehende Termine bleibt nur
     // die Knopfreihe sichtbar (Wunsch des Nutzers: Größe kann ein Widget nicht selbst ändern).
     // Keine Kopfzeile: Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
+    // Ohne anstehende Termine stehen die Knöpfe oben (Wunsch des Nutzers), sonst unter den Terminen.
     Column(modifier = GlanceModifier.fillMaxSize()) {
         val empty = state is WidgetData.Loaded && state.events.isEmpty()
-        Box(
-            modifier = if (empty) {
-                GlanceModifier.defaultWeight().fillMaxWidth()
-            } else {
-                GlanceModifier.defaultWeight().fillMaxWidth().background(BG).cornerRadius(16.dp)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            },
-        ) {
-            when (state) {
-                WidgetData.Loading -> Hint("Lädt …")
-                WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
-                is WidgetData.Failed -> Hint("Fehler: ${state.message}")
-                is WidgetData.Loaded -> if (state.events.isNotEmpty()) {
-                    // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
-                    val indexed = state.events.withIndex().toList()
-                    LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                        items(indexed, itemId = { it.index.toLong() }) { item ->
-                            EventLine(item.value, today)
+        val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
+        if (empty) {
+            ButtonRow(quick)
+        } else {
+            Box(
+                modifier = GlanceModifier.defaultWeight().fillMaxWidth().background(BG).cornerRadius(16.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                when (state) {
+                    WidgetData.Loading -> Hint("Lädt …")
+                    WidgetData.NoPermission -> Hint("Kalenderzugriff in Chip erlauben")
+                    is WidgetData.Failed -> Hint("Fehler: ${state.message}")
+                    is WidgetData.Loaded -> {
+                        // Position als ID: eindeutig, auch wenn ein Termin mehrfach vorkommt.
+                        val indexed = state.events.withIndex().toList()
+                        LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+                            items(indexed, itemId = { it.index.toLong() }) { item ->
+                                EventLine(item.value, today)
+                            }
                         }
                     }
                 }
             }
+            Spacer(GlanceModifier.height(6.dp))
+            ButtonRow(quick)
         }
-        // Knöpfe: die Plus-Knöpfe der App (gleiche Kalender und Farben) und ein neuer Quälgeist.
-        val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
-        Spacer(GlanceModifier.height(6.dp))
-        Row(modifier = GlanceModifier.fillMaxWidth()) {
-            quick.forEach { q ->
-                WidgetButton(
-                    label = "+ ${q.name}",
-                    color = Color(q.color),
-                    action = actionStartActivity(NewEventIntents.forCalendar(LocalContext.current, q.calendarId)),
-                    modifier = GlanceModifier.defaultWeight(),
-                )
-                Spacer(GlanceModifier.width(6.dp))
-            }
+    }
+}
+
+/** Plus-Knöpfe der App (gleiche Kalender und Farben) und ein neuer Quälgeist. */
+@Composable
+private fun ButtonRow(quick: List<QuickButton>) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        quick.forEach { q ->
             WidgetButton(
-                label = "+ Quälgeist",
-                color = QUAELGEIST_COLOR,
-                action = actionStartActivity<QuaelgeistActivity>(),
+                label = "+ ${q.name}",
+                color = Color(q.color),
+                action = actionStartActivity(NewEventIntents.forCalendar(LocalContext.current, q.calendarId)),
                 modifier = GlanceModifier.defaultWeight(),
             )
+            Spacer(GlanceModifier.width(6.dp))
         }
+        WidgetButton(
+            label = "+ Quälgeist",
+            color = QUAELGEIST_COLOR,
+            action = actionStartActivity<QuaelgeistActivity>(),
+            modifier = GlanceModifier.defaultWeight(),
+        )
     }
 }
 

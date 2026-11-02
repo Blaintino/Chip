@@ -33,7 +33,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   ist, und von Hand. `webcal://`-Links aus dem Browser öffnen direkt den Abo-Dialog.
 - **Kalender ein-/ausblenden und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
   Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
-- **Widget „Heute“**: ohne Kopfzeile, schwarze Fläche nur hinter den Terminen (ohne Termine bleiben nur die Knöpfe), scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
+- **Widget „Heute“**: ohne Kopfzeile, schwarze Fläche nur hinter den Terminen (ohne Termine bleiben nur die Knöpfe, dann oben), scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
   Ort, nur laufende und kommende (vergangene verschwinden zum Terminende, ganztägige bleiben); unten die Plus-Knöpfe der App (gleiche Kalender und Farben, öffnen „Neuer Termin“) und
   „+ Quälgeist“ (öffnet die Schnelleingabe von Quälgeist, falls dort freigegeben, sonst Quälgeist).
   Aktualisiert sich bei jeder Änderung in der Kalenderdatenbank und kurz nach Mitternacht.
