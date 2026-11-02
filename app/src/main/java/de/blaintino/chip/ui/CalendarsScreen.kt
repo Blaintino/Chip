@@ -51,6 +51,7 @@ import de.blaintino.chip.data.Subscription
 import de.blaintino.chip.data.SubscriptionStore
 import de.blaintino.chip.sync.SubscriptionSync
 import de.blaintino.chip.widget.TodayWidget
+import de.blaintino.chip.widget.WidgetStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -157,6 +158,24 @@ fun CalendarsScreen(
                     }
                     Text(busy ?: message.orEmpty(), style = MaterialTheme.typography.bodyMedium)
                 }
+            }
+        }
+
+        item { SectionLabel("Widget „Heute“") }
+        item {
+            val status = remember(localVersion, version) { WidgetStatus.last(context) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    status?.let { (time, msg) -> "Zuletzt: ${Formats.dateTime(time)} – $msg" }
+                        ?: "Das Widget hat sich noch nie gemeldet (nicht platziert oder startet nicht).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = { runBusy("Zeichne Widget neu …") { "Widget-Update angestoßen" } },
+                    enabled = busy == null,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) { Text("Widget neu zeichnen") }
             }
         }
 
