@@ -51,6 +51,9 @@ import java.time.temporal.TemporalAdjusters
 
 private const val CELL_RATIO = 0.85f
 private const val MONTH_SPAN_LANES = 2
+// Balken direkt unter der Tageszahl (Wunsch des Nutzers): Zahl endet bei ~30 dp (2 Rand + 4 oben + 24 Zahl).
+private val SPAN_TOP = 31.dp
+private val SPAN_STEP = 6.dp
 private val WEEKDAYS = listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 /** Monatsraster (Woche ab Montag) mit Farbpunkten, darunter die Termine des gewählten Tages. */
@@ -140,6 +143,7 @@ fun MonthScreen(
                                 isToday = day == today,
                                 isSelected = day == selected,
                                 events = byDay[day].orEmpty().filter { !it.isSpanning() },
+                                spanLanes = minOf(lanes.maxOrNull()?.plus(1) ?: 0, MONTH_SPAN_LANES),
                                 modifier = Modifier.weight(1f).dayBounds(dayRegistry, day),
                                 onClick = { onSelect(day) },
                                 onLongClick = {
@@ -161,7 +165,7 @@ fun MonthScreen(
                                 endRounded = ev.endDay <= we,
                                 showText = false,
                                 modifier = Modifier
-                                    .offset(x = cellW * a + 2.dp, y = cellH - 6.dp - 6.dp * lane)
+                                    .offset(x = cellW * a + 2.dp, y = SPAN_TOP + SPAN_STEP * lane)
                                     .width(cellW * (b - a + 1) - 4.dp)
                                     .height(4.dp),
                             )
@@ -198,6 +202,8 @@ private fun DayCell(
     isToday: Boolean,
     isSelected: Boolean,
     events: List<EventInstance>,
+    /** Balkenreihen mehrtägiger Termine in dieser Woche: Punkte rutschen darunter. */
+    spanLanes: Int,
     modifier: Modifier,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -228,7 +234,7 @@ private fun DayCell(
             )
         }
         Row(
-            Modifier.padding(top = 4.dp),
+            Modifier.padding(top = if (spanLanes > 0) 2.dp + SPAN_STEP * spanLanes else 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             events.take(4).forEach { ColorDot(it.color, size = 6) }

@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -134,13 +135,13 @@ private fun MiniMonth(
                     val d = weekStart.plusDays(i)
                     val inMonth = YearMonth.from(d) == month
                     Box(Modifier.weight(1f).aspectRatio(1f).padding(vertical = 0.5.dp), contentAlignment = Alignment.Center) {
-                        // Linie unter Tagen mehrtägiger Termine; ohne seitlichen Abstand, damit sie durchgeht.
-                        if (inMonth) spanDays[d]?.let { c ->
-                            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(2.dp).background(Color(c)))
-                        }
+                        // Tage mehrtägiger Termine voll in der Terminfarbe (Wunsch des Nutzers, statt Unterstrich):
+                        // ohne seitlichen Abstand, damit ein durchgehendes Band entsteht.
+                        val span = if (inMonth) spanDays[d] else null
+                        if (span != null) Box(Modifier.fillMaxSize().background(Color(span)))
                         if (inMonth) {
                             val isToday = d == today
-                            val busy = d in busyDays
+                            val busy = d in busyDays && span == null
                             Box(
                                 Modifier.fillMaxSize().padding(horizontal = 0.5.dp).clip(CircleShape).then(
                                     when {
@@ -155,9 +156,10 @@ private fun MiniMonth(
                                     d.dayOfMonth.toString(),
                                     fontSize = 9.sp,
                                     lineHeight = 9.sp,
-                                    fontWeight = if (busy || isToday) FontWeight.Bold else FontWeight.Normal,
+                                    fontWeight = if (busy || isToday || span != null) FontWeight.Bold else FontWeight.Normal,
                                     color = when {
                                         isToday -> colors.onPrimary
+                                        span != null -> if (Color(span).luminance() > 0.5f) Color.Black else Color.White
                                         busy -> colors.onSecondaryContainer
                                         else -> colors.onSurfaceVariant
                                     },
