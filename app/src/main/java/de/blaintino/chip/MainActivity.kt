@@ -58,6 +58,10 @@ import de.blaintino.chip.ui.EventDetails
 import de.blaintino.chip.ui.EventEditor
 import de.blaintino.chip.ui.MonthScreen
 import de.blaintino.chip.ui.WeekScreen
+import de.blaintino.chip.ui.YearScreen
+import de.blaintino.chip.ui.CalendarZoom
+import de.blaintino.chip.ui.pinchToZoom
+import androidx.compose.foundation.layout.Box
 import de.blaintino.chip.widget.TodayWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -93,7 +97,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val TAB_AGENDA = 0
-/** Kalenderansicht: Woche (Vorgabe) oder Monat, Wechsel per Doppeltipp auf den Tab. */
+/** Kalenderansicht Tag/Woche/Monat/Jahr (Vorgabe Woche): Pinch zoomt, Doppeltipp Woche ↔ Monat. */
 private const val TAB_GRID = 1
 private const val TAB_CALENDARS = 2
 private const val DOUBLE_TAP_MS = 400L
@@ -133,7 +137,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     }
 
     var tab by rememberSaveable { mutableIntStateOf(TAB_GRID) }
-    var monthMode by rememberSaveable { mutableStateOf(false) }
+    var zoom by rememberSaveable { mutableStateOf(CalendarZoom.WEEK) }
     var lastGridTap by remember { mutableLongStateOf(0L) }
     var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var hidden by remember { mutableStateOf(HiddenCalendars.get(context)) }
@@ -206,7 +210,7 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                     Text(
                         when (tab) {
                             TAB_AGENDA -> "Termine"
-                            TAB_GRID -> if (monthMode) "Monat" else "Woche"
+                            TAB_GRID -> zoom.label
                             else -> "Kalender & Abos"
                         },
                     )
@@ -221,12 +225,23 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
                     onClick = {
                         // Doppeltipp wechselt zwischen Woche und Monat.
                         val now = SystemClock.uptimeMillis()
-                        if (tab == TAB_GRID && now - lastGridTap < DOUBLE_TAP_MS) monthMode = !monthMode
+                        if (tab == TAB_GRID && now - lastGridTap < DOUBLE_TAP_MS) {
+                            zoom = if (zoom == CalendarZoom.WEEK) CalendarZoom.MONTH else CalendarZoom.WEEK
+                        }
                         lastGridTap = now
                         tab = TAB_GRID
                     },
-                    icon = { Text(if (monthMode) "▦" else "▥") },
-                    label = { Text(if (monthMode) "Monat" else "Woche") },
+                    icon = {
+                        Text(
+                            when (zoom) {
+                                CalendarZoom.DAY -> "▯"
+                                CalendarZoom.WEEK -> "▥"
+                                CalendarZoom.MONTH -> "▦"
+                                CalendarZoom.YEAR -> "▩"
+                            },
+                        )
+                    },
+                    label = { Text(zoom.label) },
                 )
                 NavigationBarItem(selected = tab == TAB_CALENDARS, onClick = { tab = TAB_CALENDARS }, icon = { Text("◉") }, label = { Text("Kalender") })
             }
@@ -239,21 +254,44 @@ private fun ChipApp(pendingWebcal: String?, onWebcalHandled: () -> Unit) {
     ) { padding ->
         when (tab) {
             TAB_AGENDA -> AgendaScreen(repo, version, hidden, padding, onEventClick = ::openEvent)
-            TAB_GRID -> if (monthMode) {
-                MonthScreen(
-                    repo, version, hidden, selectedDay,
-                    onSelect = { selectedDay = it },
-                    contentPadding = padding,
-                    onEventClick = ::openEvent,
-                )
-            } else {
-                WeekScreen(
-                    repo, version, hidden, selectedDay,
-                    onSelect = { selectedDay = it },
-                    contentPadding = padding,
-                    onEventClick = ::openEvent,
-                    onCreateAt = { newEvent(it) },
-                )
+            // Zwei Finger aufziehen = feiner (Jahr → Monat → Woche → Tag), zusammenschieben = gröber.
+            TAB_GRID -> Box(
+                Modifier.fillMaxSize().pinchToZoom(
+                    onZoomIn = { zoom = zoom.zoomIn() },
+                    onZoomOut = { zoom = zoom.zoomOut() },
+                ),
+            ) {
+                when (zoom) {
+                    CalendarZoom.DAY, CalendarZoom.WEEK -> WeekScreen(
+                        repo = repo,
+                        dayCount = if (zoom == CalendarZoom.DAY) 1 else 7,
+                        version = version,
+                        hidden = hidden,
+                        selected = selectedDay,
+                        onSelect = { selectedDay = it },
+                        contentPadding = padding,
+                        onEventClick = ::openEvent,
+                        onCreateAt = { newEvent(it) },
+                    )
+                    CalendarZoom.MONTH -> MonthScreen(
+                        repo, version, hidden, selectedDay,
+                        onSelect = { selectedDay = it },
+                        contentPadding = padding,
+                        onEventClick = ::openEvent,
+                    )
+                    CalendarZoom.YEAR -> YearScreen(
+                        repo = repo,
+                        version = version,
+                        hidden = hidden,
+                        selected = selectedDay,
+                        onSelect = { selectedDay = it },
+                        onOpenMonth = {
+                            selectedDay = it
+                            zoom = CalendarZoom.MONTH
+                        },
+                        contentPadding = padding,
+                    )
+                }
             }
             else -> CalendarsScreen(
                 repo = repo,
