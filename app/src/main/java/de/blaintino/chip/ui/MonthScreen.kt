@@ -25,7 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +56,8 @@ fun MonthScreen(
     onEventClick: (EventInstance) -> Unit,
 ) {
     val today = LocalDate.now()
-    var month by rememberSaveable { mutableStateOf(YearMonth.from(selected)) }
+    // Der Monat folgt dem gewählten Tag, damit Zoomen (Woche/Jahr) beim selben Datum bleibt.
+    val month = YearMonth.from(selected)
     val first = month.atDay(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val last = month.atEndOfMonth().with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
     var byDay by remember { mutableStateOf<Map<LocalDate, List<EventInstance>>>(emptyMap()) }
@@ -72,17 +72,16 @@ fun MonthScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = { month = month.minusMonths(1) }) { Text("‹", style = MaterialTheme.typography.titleLarge) }
+                TextButton(onClick = { onSelect(selected.minusMonths(1)) }) { Text("‹", style = MaterialTheme.typography.titleLarge) }
                 Text(
                     Formats.month(month),
                     modifier = Modifier.weight(1f).clickable {
-                        month = YearMonth.from(today)
                         onSelect(today)
                     },
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium,
                 )
-                TextButton(onClick = { month = month.plusMonths(1) }) { Text("›", style = MaterialTheme.typography.titleLarge) }
+                TextButton(onClick = { onSelect(selected.plusMonths(1)) }) { Text("›", style = MaterialTheme.typography.titleLarge) }
             }
         }
         item {

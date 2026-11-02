@@ -12,8 +12,10 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 - **Woche** (Startansicht): Mo–So mit Stundenraster, ganztägige Termine oben, Überschneidungen
   nebeneinander, rote Linie für „jetzt“. Beim Öffnen füllt 8–18 Uhr die Höhe (Stundenhöhe passt
   sich dem Bildschirm an), davor/danach scrollen. Tippen auf eine freie Stelle legt dort einen Termin an.
-  **Doppeltipp auf den Tab „Woche“** wechselt zur **Monatsansicht** (Raster mit Farbpunkten, darunter
-  die Termine des gewählten Tages) und zurück.
+  **Zoomen mit zwei Fingern:** Aufziehen wechselt eine Stufe feiner, Zusammenschieben eine gröber:
+  **Jahr** (12 kleine Monate, Tage mit Terminen markiert) ↔ **Monat** (Raster mit Farbpunkten, darunter
+  die Termine des gewählten Tages) ↔ **Woche** ↔ **Tag** (wie die Woche, nur ein Tag, mit Ort).
+  **Doppeltipp auf den Tab** wechselt direkt zwischen Woche und Monat.
 - **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
   Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter „Kalender & Abos“
   eingeschaltet sind. Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum
@@ -40,6 +42,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 | `sync/Background.kt` | WorkManager: tägliches Abo-Update, Widget bei Änderungen/Mitternacht |
 | `widget/TodayWidget.kt` | Glance-Widget „Heute“ |
 | `ui/…` | Compose-Bildschirme: Termine, Woche, Monat, Kalender & Abos, Editor |
+| `ui/Zoom.kt` | Detailstufen Tag/Woche/Monat/Jahr und Pinch-Geste (Tests `CalendarZoomTest`) |
 | `ui/DayLayout.kt` | Spalten für sich überschneidende Termine in der Wochenansicht (Tests `DayLayoutTest`) |
 
 ## Bauen

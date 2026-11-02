@@ -28,8 +28,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   `editorCalendars`); beim Bearbeiten bleibt der bisherige Kalender des Termins wählbar.
 - Ansichten (Wunsch des Nutzers): Start-Tab ist die **Woche** (`WeekScreen`, Stundenraster,
   Überschneidungen über `DayLayout`, Tests `DayLayoutTest`). Beim Öffnen ist 8–18 Uhr
-  sichtbar (Wunsch des Nutzers): Stundenhöhe = verfügbare Höhe / 10, nicht fest codiert. **Doppeltipp** auf den Tab
-  Woche/Monat wechselt zwischen Woche und Monat (`monthMode`). Tippen auf eine freie Stelle im
+  sichtbar (Wunsch des Nutzers): Stundenhöhe = verfügbare Höhe / 10, nicht fest codiert. Ein Tab mit vier Detailstufen
+  `CalendarZoom` (Tag/Woche/Monat/Jahr, `Zoom.kt`): **Pinch** (zwei Finger aufziehen = feiner,
+  zusammenschieben = gröber, eine Stufe je Geste, `pinchToZoom` im Initial-Durchgang, verbraucht nur
+  Mehrfinger-Ereignisse); **Doppeltipp** auf den Tab wechselt Woche ↔ Monat. Tag = `WeekScreen` mit
+  `dayCount = 1`. Alle Stufen folgen `selectedDay` (auch die Monatsnavigation), damit Zoomen beim
+  selben Datum bleibt. Tippen auf eine freie Stelle im
   Raster legt dort einen Termin an.
 - Bearbeiten nur für Einzeltermine in beschreibbaren Kalendern (`CAL_ACCESS_CONTRIBUTOR`+).
   Serien (RRULE/RDATE) bewusst nur lesend mit Sprung in die Kalender-App (`EventDetails`) – das

@@ -70,13 +70,15 @@ private val WEEKDAY = DateTimeFormatter.ofPattern("EE", Locale.GERMAN)
 private const val MAX_ALL_DAY = 2
 
 /**
- * Wochenansicht Mo–So mit Stundenraster. Ganztägige Termine oben, zeitgebundene im Raster
+ * Wochen- (Mo–So) bzw. Tagesansicht mit Stundenraster. Ganztägige Termine oben, zeitgebundene im Raster
  * (mehrtägige je Tag zugeschnitten, Überschneidungen nebeneinander über [DayLayout]).
  * Tippen auf eine freie Stelle legt dort einen Termin an.
  */
 @Composable
 fun WeekScreen(
     repo: CalendarRepository,
+    /** 7 = Woche (Mo–So), 1 = einzelner Tag ([selected]). */
+    dayCount: Int,
     version: Int,
     hidden: Set<Long>,
     selected: LocalDate,
@@ -87,11 +89,13 @@ fun WeekScreen(
 ) {
     val today = LocalDate.now()
     val zone = ZoneId.systemDefault()
-    val weekStart = selected.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val days = (0L until 7L).map { weekStart.plusDays(it) }
+    val single = dayCount == 1
+    val weekStart = if (single) selected else selected.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val days = (0L until dayCount.toLong()).map { weekStart.plusDays(it) }
+    val maxAllDay = if (single) 4 else MAX_ALL_DAY
     var events by remember { mutableStateOf<List<EventInstance>>(emptyList()) }
-    LaunchedEffect(version, hidden, weekStart) {
-        events = withContext(Dispatchers.IO) { repo.instances(weekStart, weekStart.plusDays(6), hidden) }
+    LaunchedEffect(version, hidden, weekStart, dayCount) {
+        events = withContext(Dispatchers.IO) { repo.instances(weekStart, days.last(), hidden) }
     }
     val allDayByDay = days.associateWith { d -> events.filter { it.allDay && d in it.startDay..it.endDay } }
     val anyAllDay = allDayByDay.values.any { it.isNotEmpty() }
@@ -102,14 +106,15 @@ fun WeekScreen(
     Column(Modifier.fillMaxSize().padding(contentPadding)) {
         // Kopf: Woche wechseln, Tippen auf den Titel springt zu heute.
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { onSelect(selected.minusWeeks(1)) }) { Text("‹", style = MaterialTheme.typography.titleLarge) }
+            TextButton(onClick = { onSelect(selected.minusDays(dayCount.toLong())) }) { Text("‹", style = MaterialTheme.typography.titleLarge) }
             Text(
-                "KW ${weekStart.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)} · ${Formats.short(weekStart)} – ${Formats.short(weekStart.plusDays(6))}",
+                if (single) Formats.dayLong(selected)
+                else "KW ${weekStart.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)} · ${Formats.short(weekStart)} – ${Formats.short(weekStart.plusDays(6))}",
                 modifier = Modifier.weight(1f).clickable { onSelect(today) },
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium,
             )
-            TextButton(onClick = { onSelect(selected.plusWeeks(1)) }) { Text("›", style = MaterialTheme.typography.titleLarge) }
+            TextButton(onClick = { onSelect(selected.plusDays(dayCount.toLong())) }) { Text("›", style = MaterialTheme.typography.titleLarge) }
         }
 
         // Wochentage
@@ -148,10 +153,10 @@ fun WeekScreen(
                 days.forEach { d ->
                     val list = allDayByDay[d].orEmpty()
                     Column(Modifier.weight(1f).padding(horizontal = 1.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        list.take(MAX_ALL_DAY).forEach { ev -> EventChip(ev, Modifier.fillMaxWidth().height(18.dp), onClick = { onEventClick(ev) }) }
-                        if (list.size > MAX_ALL_DAY) {
+                        list.take(maxAllDay).forEach { ev -> EventChip(ev, Modifier.fillMaxWidth().height(18.dp), onClick = { onEventClick(ev) }) }
+                        if (list.size > maxAllDay) {
                             Text(
-                                "+${list.size - MAX_ALL_DAY}",
+                                "+${list.size - maxAllDay}",
                                 modifier = Modifier.fillMaxWidth().clickable { onSelect(d) },
                                 style = MaterialTheme.typography.labelSmall,
                                 textAlign = TextAlign.Center,
@@ -227,6 +232,7 @@ fun WeekScreen(
                                     .padding(1.dp),
                                 onClick = { onEventClick(ev) },
                                 showTime = slot.endMin - slot.startMin >= 45,
+                                showLocation = single,
                             )
                         }
                         if (d == today) {
@@ -245,7 +251,13 @@ fun WeekScreen(
 }
 
 @Composable
-private fun EventChip(ev: EventInstance, modifier: Modifier, onClick: () -> Unit, showTime: Boolean = false) {
+private fun EventChip(
+    ev: EventInstance,
+    modifier: Modifier,
+    onClick: () -> Unit,
+    showTime: Boolean = false,
+    showLocation: Boolean = false,
+) {
     val bg = Color(ev.color)
     val fg = if (bg.luminance() > 0.5f) Color.Black else Color.White
     Box(
@@ -260,6 +272,9 @@ private fun EventChip(ev: EventInstance, modifier: Modifier, onClick: () -> Unit
             Text(ev.title, color = fg, fontSize = 11.sp, lineHeight = 12.sp, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
             if (showTime) {
                 Text(Formats.time(ev.begin), color = fg.copy(alpha = 0.85f), fontSize = 10.sp, lineHeight = 11.sp, maxLines = 1)
+            }
+            if (showLocation && ev.location.isNotBlank()) {
+                Text(ev.location, color = fg.copy(alpha = 0.85f), fontSize = 10.sp, lineHeight = 11.sp, maxLines = 1)
             }
         }
     }
