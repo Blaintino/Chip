@@ -54,6 +54,7 @@ import de.blaintino.chip.data.Formats
 import de.blaintino.chip.data.QuickAddCalendars
 import de.blaintino.chip.data.Subscription
 import de.blaintino.chip.data.SubscriptionStore
+import de.blaintino.chip.stempel.StempelVisibility
 import de.blaintino.chip.stempel.Stempelkarte
 import de.blaintino.chip.sync.SubscriptionSync
 import de.blaintino.chip.widget.TodayWidget
@@ -230,7 +231,9 @@ fun CalendarsScreen(
         item {
             val info = remember(localVersion, version) {
                 val signal = Stempelkarte.lastSignal(context)
-                Stempelkarte.describe(context) + "\nLetzte Wechselmeldung: " +
+                Stempelkarte.describe(context) + "\n" + StempelVisibility.describe(context) +
+                    "\nKnopf sichtbar: erkannt oder eingeloggt, oder 1 h vor bis 1 h nach den Terminen der Arbeitskalender." +
+                    "\nLetzte Wechselmeldung: " +
                     (signal?.let { (t, s) -> "${Formats.dateTime(t)} – $s" } ?: "noch keine")
             }
             Text(

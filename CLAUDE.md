@@ -138,7 +138,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Wetter-Pille (`TopRow`; mit Knopf steht das Wetter links, ohne Stempelkarte wie früher mittig): nicht
   eingeloggt ein **rundes Symbol** (`ic_stempel_login`, 40 dp; vorher Text „Einloggen“ – dem Nutzer dauerhaft zu
   aufdringlich, eine sinnvolle Regel zum Ausblenden fiel ihm nicht ein) in der Farbe der Stempelkarte (rot bei
-  `NICHT_EINGELOGGT`, sonst schwarz wie die Pille), eingeloggt grün mit
+  `NICHT_EINGELOGGT`, sonst schwarz wie die Pille). **Nur im Kontext sichtbar** (Wunsch des Nutzers, Varianten
+  „Stempelkarte“ + „Kalender“, `StempelVisibility`, Tests `StempelVisibilityTest`): Stempelkarte nicht `NEUTRAL`
+  (erkannt/erinnert oder eingeloggt), oder heute zwischen 1 h vor dem ersten und 1 h nach dem letzten nicht ganztägigen Termin der
+  Arbeitskalender (Name enthält „Stundenplan“ oder „Arbeit“, auch in Chip ausgeblendete). Neuzeichnen zu den
+  Fenstergrenzen über `scheduleWidgetRefreshAt` (früheste von Terminende und Fenstergrenze).
+  „Heute schon gearbeitet → bis Mitternacht sichtbar“ gab es kurz, vom Nutzer gestrichen (das Terminfenster reicht). Eingeloggt grün mit
   der **heutigen Arbeitszeit** (Summe aller Sitzungen, rechnet die Stempelkarte), Tippen = ausloggen. Die Zeit
   ist ein `Chronometer` per `AndroidRemoteViews` (`res/layout/widget_chronometer.xml`), Basis aus
   `arbeit_heute_ms` + `arbeit_laeuft_seit` – zählt im Launcher selbst, **kein minütliches Neuzeichnen** (Akku;

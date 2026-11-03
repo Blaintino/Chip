@@ -71,6 +71,7 @@ import androidx.glance.ImageProvider
 import androidx.glance.layout.size
 import de.blaintino.chip.R
 import de.blaintino.chip.stempel.StempelStatus
+import de.blaintino.chip.stempel.StempelVisibility
 import de.blaintino.chip.stempel.Stempelkarte
 import de.blaintino.chip.stempel.StempelkarteActivity
 
@@ -110,20 +111,27 @@ class TodayWidget : GlanceAppWidget() {
             val now = System.currentTimeMillis()
             // Nur laufende und kommende Termine; zum nächsten Terminende erneut zeichnen.
             val events = WidgetFilter.upcoming(repo.instances(today, today, HiddenCalendars.get(context)), now)
-            Background.scheduleWidgetRefreshAt(context, WidgetFilter.nextChange(events, now))
             val calendars = repo.calendars()
             val quick = (QuickAddCalendars.get(context) ?: emptyList()).mapNotNull { id ->
                 calendars.firstOrNull { it.id == id && it.writable }?.let { QuickButton(it.id, it.name, it.color) }
             }
             // Wetterzeile (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis für den Rest des Tages.
             val weather = Weather.today(context, allowFetch = true)?.let { WeatherText.line(it, LocalDateTime.now()) }
-            // Stempel-Knopf (Wunsch des Nutzers): nur, wenn die FH Stempelkarte lesbar ist.
-            val stempel = Stempelkarte.read(context)
+            // Stempel-Knopf (Wunsch des Nutzers): nur, wenn die FH Stempelkarte lesbar ist, und nur im
+            // Kontext (StempelVisibility: erkannt/eingeloggt, heute gearbeitet oder rund um Arbeitstermine).
+            val stempelStatus = Stempelkarte.read(context)
+            val stempelWindow = if (stempelStatus != null) StempelVisibility.today(context, repo) else null
+            val stempel = stempelStatus?.takeIf { StempelVisibility.visible(it, stempelWindow, now) }
+            // Neu zeichnen zum nächsten Terminende bzw. wenn der Stempel-Knopf erscheinen/verschwinden soll.
+            Background.scheduleWidgetRefreshAt(
+                context,
+                listOfNotNull(WidgetFilter.nextChange(events, now), StempelVisibility.nextChange(stempelWindow, now)).minOrNull(),
+            )
             WidgetStatus.record(
                 context,
                 "${events.size} anstehende Termine geladen, Wetter: " +
                     (weather ?: if (Weather.place(context) == null) "aus" else "keine Daten") +
-                    ", Stempelkarte: " + (stempel?.state ?: "nicht verfügbar"),
+                    ", Stempelkarte: " + (stempelStatus?.state?.let { if (stempel == null) "$it (ausgeblendet)" else it } ?: "nicht verfügbar"),
             )
             WidgetData.Loaded(events, quick, weather, stempel)
         }
