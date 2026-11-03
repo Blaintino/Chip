@@ -43,7 +43,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   Release-Builds beider Apps): rechts neben der Wetter-Pille ein rundes Einloggen-Symbol (rot, wenn die Stempelkarte erinnert);
   eingeloggt grün mit der heutigen Arbeitszeit (über mehrmaliges Ein-/Ausloggen aufsummiert), Tippen loggt aus.
   Danach öffnet die Stempelkarte ZEUS. Sichtbar nur bei Bedarf: wenn die Stempelkarte dich an der FH erkannt hat
-  oder du eingeloggt bist, wenn du heute schon gearbeitet hast, oder von 1 h vor dem ersten bis 1 h nach dem
+  oder du eingeloggt bist, oder von 1 h vor dem ersten bis 1 h nach dem
   letzten Termin in Kalendern mit „Stundenplan“ oder „Arbeit“ im Namen. Sonst (und ohne Stempelkarte) steht das Wetter mittig.
 - **Widget „Heute“**: ohne Kopfzeile, schwarze Fläche nur hinter den Terminen (ohne Termine bleiben nur die Knöpfe, dann oben), scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
   Ort, nur laufende und kommende (vergangene verschwinden zum Terminende, ganztägige bleiben); unten die Plus-Knöpfe der App (gleiche Kalender und Farben, öffnen „Neuer Termin“) und

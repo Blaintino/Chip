@@ -11,7 +11,6 @@ import java.time.ZoneId
 /**
  * Wann der Stempel-Knopf im Widget erscheint (Wunsch des Nutzers, 2026-11-03: nicht dauerhaft). Sichtbar, wenn
  * - die Stempelkarte nicht neutral ist (sie hat dich an der FH erkannt und erinnert, oder du bist eingeloggt),
- * - du heute schon gearbeitet hast (zum Wiedereinloggen, z. B. nach der Mittagspause), oder
  * - heute Termine in den Arbeitskalendern liegen und es zwischen 1 h vor dem ersten und 1 h nach dem letzten ist.
  * Arbeitskalender = Name enthält „Stundenplan“ oder „Arbeit“. Rein (bis auf [today]), Tests `StempelVisibilityTest`.
  */
@@ -33,7 +32,7 @@ object StempelVisibility {
     }
 
     fun visible(status: StempelStatus, window: Window?, now: Long): Boolean =
-        status.state != "NEUTRAL" || status.workClosedMs > 0 ||
+        status.state != "NEUTRAL" ||
             (window != null && now >= window.start && now < window.end)
 
     /** Nächster Zeitpunkt, an dem sich die Sichtbarkeit durch das Fenster ändert (zum Neuzeichnen). */

@@ -51,9 +51,10 @@ class StempelVisibilityTest {
         assertTrue(StempelVisibility.visible(StempelStatus("EINGELOGGT", null, 0, 1), null, 20 * h))
     }
 
+    /** Wunsch des Nutzers: nach dem letzten Termin + 1 h weg, auch wenn heute gearbeitet wurde. */
     @Test
-    fun nachArbeitHeuteBleibtSichtbar() =
-        assertTrue(StempelVisibility.visible(StempelStatus("NEUTRAL", null, 2 * h, 0), null, 20 * h))
+    fun nachArbeitHeuteNichtMehrSichtbar() =
+        assertFalse(StempelVisibility.visible(StempelStatus("NEUTRAL", null, 2 * h, 0), null, 20 * h))
 
     @Test
     fun naechsterWechsel() {
