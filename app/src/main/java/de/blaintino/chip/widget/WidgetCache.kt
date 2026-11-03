@@ -2,6 +2,7 @@ package de.blaintino.chip.widget
 
 import android.content.Context
 import de.blaintino.chip.data.EventInstance
+import de.blaintino.chip.stempel.StempelStatus
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -21,6 +22,10 @@ internal object WidgetCache {
         memory = data
         val json = JSONObject().apply {
             put("weather", data.weather ?: JSONObject.NULL)
+            data.stempel?.let { s ->
+                put("stempel", JSONObject().put("state", s.state).put("color", s.color ?: JSONObject.NULL)
+                    .put("closed", s.workClosedMs).put("since", s.workRunningSince))
+            }
             put("quick", JSONArray().apply {
                 data.quick.forEach { put(JSONObject().put("id", it.calendarId).put("name", it.name).put("color", it.color)) }
             })
@@ -71,6 +76,14 @@ internal object WidgetCache {
                 QuickButton(q.getLong("id"), q.getString("name"), q.getInt("color"))
             },
             weather = if (json.isNull("weather")) null else json.optString("weather"),
+            stempel = json.optJSONObject("stempel")?.let { s ->
+                StempelStatus(
+                    state = s.getString("state"),
+                    color = if (s.isNull("color")) null else s.getInt("color"),
+                    workClosedMs = s.optLong("closed"),
+                    workRunningSince = s.optLong("since"),
+                )
+            },
         )
     }
 }
