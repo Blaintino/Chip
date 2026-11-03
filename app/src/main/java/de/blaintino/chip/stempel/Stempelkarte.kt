@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 object Stempelkarte {
     const val PACKAGE = "de.fhstempelkarte"
     const val PERMISSION = "$PACKAGE.permission.INTEROP"
-    private val STATUS_URI: Uri = Uri.parse("content://$PACKAGE.status/status")
+    val STATUS_URI: Uri = Uri.parse("content://$PACKAGE.status/status")
     const val ACTION_STATE_CHANGED = "$PACKAGE.action.ZUSTAND_GEAENDERT"
     const val ACTION_LOGIN = "$PACKAGE.action.EINLOGGEN"
     const val ACTION_LOGOUT = "$PACKAGE.action.AUSLOGGEN"
@@ -45,6 +45,37 @@ object Stempelkarte {
     } catch (e: Exception) {
         Log.w(TAG, "Stempelkarte nicht lesbar", e)
         null
+    }
+
+    /** Zur Fehlersuche in den Einstellungen: wann und wodurch zuletzt ein Wechsel gemeldet wurde. */
+    fun recordSignal(context: Context, source: String) {
+        context.getSharedPreferences("stempel", Context.MODE_PRIVATE).edit()
+            .putLong("signalTime", System.currentTimeMillis()).putString("signalSource", source).apply()
+    }
+
+    fun lastSignal(context: Context): Pair<Long, String>? {
+        val p = context.getSharedPreferences("stempel", Context.MODE_PRIVATE)
+        val source = p.getString("signalSource", null) ?: return null
+        return p.getLong("signalTime", 0) to source
+    }
+
+    /** Ein Satz für die Einstellungen (Fehlersuche ohne adb). */
+    fun describe(context: Context, now: Long = System.currentTimeMillis()): String {
+        val s = read(context)
+            ?: return "Nicht lesbar – FH Stempelkarte fehlt, ist älter als v17, oder Chip hat die Berechtigung nicht " +
+                "(Debug-Build, oder Chip wurde vor der Stempelkarte installiert: dann Chip neu installieren)."
+        val time = when {
+            s.timeKnown -> ", heute ${formatDuration(s.workedMs(now))} (läuft seit ${de.blaintino.chip.data.Formats.time(s.workRunningSince)})"
+            s.loggedIn -> ", Beginn unbekannt (Stempelkarte ab v19 und einmal neu einloggen)"
+            s.workClosedMs > 0 -> ", heute ${formatDuration(s.workClosedMs)}"
+            else -> ""
+        }
+        return "Zustand ${s.state}$time"
+    }
+
+    fun formatDuration(ms: Long): String {
+        val minutes = ms / 60_000
+        return "%d:%02d h".format(minutes / 60, minutes % 60)
     }
 
     private fun Cursor.intOrNull(name: String): Int? =
@@ -114,6 +145,7 @@ class StempelReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Stempelkarte.ACTION_STATE_CHANGED) return
         val app = context.applicationContext
+        Stempelkarte.recordSignal(app, "Meldung der Stempelkarte (${intent.getStringExtra("zustand") ?: "?"})")
         val pending = goAsync()
         CoroutineScope(Dispatchers.Default).launch {
             try {

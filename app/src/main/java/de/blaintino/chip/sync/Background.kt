@@ -11,6 +11,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import de.blaintino.chip.stempel.Stempelkarte
 import de.blaintino.chip.widget.TodayWidget
 import java.time.Duration
 import java.time.LocalDate
@@ -32,6 +33,7 @@ object Background {
     private const val MIDNIGHT_WORK = "widget-midnight"
     private const val WEATHER_WORK = "weather-hourly"
     private const val EVENT_END_WORK = "widget-event-end"
+    private const val STEMPEL_WORK = "stempel-change-watch"
 
     fun schedule(context: Context) {
         val wm = WorkManager.getInstance(context)
@@ -51,6 +53,7 @@ object Background {
                 .build(),
         )
         watchCalendarChanges(context, ExistingWorkPolicy.KEEP)
+        watchStempelkarte(context, ExistingWorkPolicy.KEEP)
         scheduleMidnight(context, ExistingWorkPolicy.KEEP)
     }
 
@@ -79,6 +82,29 @@ object Background {
                 )
                 .build(),
         )
+    }
+
+    /**
+     * Zweiter Weg neben dem Broadcast der Stempelkarte (`StempelReceiver`): ihr Status-Provider meldet
+     * jede Änderung per notifyChange, darauf zeichnet das Widget neu (Wunsch des Nutzers: Ein-/Ausloggen
+     * außerhalb des Widgets soll das Widget aktualisieren).
+     */
+    internal fun watchStempelkarte(context: Context, policy: ExistingWorkPolicy) {
+        runCatching {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                STEMPEL_WORK,
+                policy,
+                OneTimeWorkRequestBuilder<StempelChangeWorker>()
+                    .setConstraints(
+                        Constraints.Builder()
+                            .addContentUriTrigger(Stempelkarte.STATUS_URI, false)
+                            .setTriggerContentUpdateDelay(Duration.ofSeconds(1))
+                            .setTriggerContentMaxDelay(Duration.ofSeconds(5))
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
     }
 
     /** Widget zum Ende des nächsten angezeigten Termins neu zeichnen (vergangene ausblenden); null = abbrechen. */
@@ -129,6 +155,16 @@ class CalendarChangeWorker(context: Context, params: WorkerParameters) : Corouti
         }
         // Content-Auslöser gelten nur einmal: gleich wieder anmelden (nach diesem Lauf).
         Background.watchCalendarChanges(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
+        return Result.success()
+    }
+}
+
+class StempelChangeWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        Stempelkarte.recordSignal(applicationContext, "Änderung im Status der Stempelkarte")
+        TodayWidget.refresh(applicationContext)
+        // Content-Auslöser gelten nur einmal: gleich wieder anmelden.
+        Background.watchStempelkarte(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
         return Result.success()
     }
 }

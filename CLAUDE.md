@@ -145,7 +145,12 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   (`ZUSTAND_GEAENDERT`, nur mit Berechtigung) zeichnet neu; Status auch in `WidgetCache`. Alles hinter der
   `signature`-Berechtigung `de.fhstempelkarte.permission.INTEROP` (gleicher Keystore): **Debug-Chip sieht den
   Knopf nie**; Stempelkarte muss vor Chip installiert sein (v17+), Arbeitszeit braucht die Stempelkarte mit
-  `WorkTime`. `WidgetStatus` nennt den gelesenen Stempelkarten-Zustand. Auf dem Gerät noch nicht getestet.
+  `WorkTime`. `WidgetStatus` nennt den gelesenen Stempelkarten-Zustand.
+  v61 auf dem Gerät (2026-11-03): nach Aus-/Einloggen kein Timer zu sehen, Ursache unbekannt. Deshalb zweiter
+  Weg fürs Neuzeichnen: WorkManager-Content-URI-Auslöser auf den Status-Provider (`Background.watchStempelkarte`,
+  `StempelChangeWorker`, meldet sich nach jedem Lauf neu an) zusätzlich zum Broadcast. Fehlersuche ohne adb:
+  Abschnitt „FH Stempelkarte“ in den Einstellungen (`Stempelkarte.describe`: lesbar?, Zustand, Arbeitszeit,
+  Beginn bekannt?, letzte Wechselmeldung und woher – Broadcast oder Provider).
 - Neue Abhängigkeiten nur mit gutem Grund. Aktuell: Compose, Core-KTX, Activity-Compose,
   Lifecycle, WorkManager, Glance.
 - Debug-Build: App-ID `de.blaintino.chip.debug`, Name über den Manifest-Platzhalter `appLabel`.
