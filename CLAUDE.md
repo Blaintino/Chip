@@ -133,6 +133,19 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   laden“. Auf dem Gerät bestätigt (v37, 2026-11-02); in v35 erschien das Wetter zunächst nicht, nach
   „Wetter jetzt laden“ lief es – Ursache unklar (vermutlich Widget nicht neu gezeichnet oder erster Abruf
   fehlgeschlagen).
+- **Stempel-Knopf im Widget** (Wunsch des Nutzers, 2026-11-03): Anbindung an die eigene App FH Stempelkarte
+  (`Blaintino/FH-Stempelkarte`, Vertrag dort in `INTEROP.md`), `stempel/Stempelkarte.kt`. Rechts in der Zeile der
+  Wetter-Pille (`TopRow`; mit Knopf steht das Wetter links, ohne Stempelkarte wie früher mittig): „Einloggen“
+  (Farbe der Stempelkarte, d. h. rot bei `NICHT_EINGELOGGT`, sonst schwarz wie die Pille), eingeloggt grün mit
+  der **heutigen Arbeitszeit** (Summe aller Sitzungen, rechnet die Stempelkarte), Tippen = ausloggen. Die Zeit
+  ist ein `Chronometer` per `AndroidRemoteViews` (`res/layout/widget_chronometer.xml`), Basis aus
+  `arbeit_heute_ms` + `arbeit_laeuft_seit` – zählt im Launcher selbst, **kein minütliches Neuzeichnen** (Akku;
+  Nachteil: zeigt Sekunden). Ohne bekannten Beginn „Eingeloggt“. Sprungbrett `StempelkarteActivity` startet
+  `de.fhstempelkarte.action.EINLOGGEN`/`AUSLOGGEN` (dann ZEUS), Fehler als Toast. `StempelReceiver`
+  (`ZUSTAND_GEAENDERT`, nur mit Berechtigung) zeichnet neu; Status auch in `WidgetCache`. Alles hinter der
+  `signature`-Berechtigung `de.fhstempelkarte.permission.INTEROP` (gleicher Keystore): **Debug-Chip sieht den
+  Knopf nie**; Stempelkarte muss vor Chip installiert sein (v17+), Arbeitszeit braucht die Stempelkarte mit
+  `WorkTime`. `WidgetStatus` nennt den gelesenen Stempelkarten-Zustand. Auf dem Gerät noch nicht getestet.
 - Neue Abhängigkeiten nur mit gutem Grund. Aktuell: Compose, Core-KTX, Activity-Compose,
   Lifecycle, WorkManager, Glance.
 - Debug-Build: App-ID `de.blaintino.chip.debug`, Name über den Manifest-Platzhalter `appLabel`.

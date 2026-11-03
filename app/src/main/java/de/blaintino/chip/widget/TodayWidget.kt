@@ -55,12 +55,20 @@ import androidx.glance.LocalContext
 import androidx.glance.action.Action
 import androidx.glance.unit.ColorProvider
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import de.blaintino.chip.sync.Background
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import android.os.SystemClock
+import android.widget.RemoteViews
+import androidx.glance.appwidget.AndroidRemoteViews
+import de.blaintino.chip.R
+import de.blaintino.chip.stempel.StempelStatus
+import de.blaintino.chip.stempel.Stempelkarte
+import de.blaintino.chip.stempel.StempelkarteActivity
 
 /** Widget „Heute“: scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und Ort. */
 class TodayWidget : GlanceAppWidget() {
@@ -105,12 +113,15 @@ class TodayWidget : GlanceAppWidget() {
             }
             // Wetterzeile (Wunsch des Nutzers): Höchst-/Tiefstwert und Regenhinweis für den Rest des Tages.
             val weather = Weather.today(context, allowFetch = true)?.let { WeatherText.line(it, LocalDateTime.now()) }
+            // Stempel-Knopf (Wunsch des Nutzers): nur, wenn die FH Stempelkarte lesbar ist.
+            val stempel = Stempelkarte.read(context)
             WidgetStatus.record(
                 context,
                 "${events.size} anstehende Termine geladen, Wetter: " +
-                    (weather ?: if (Weather.place(context) == null) "aus" else "keine Daten"),
+                    (weather ?: if (Weather.place(context) == null) "aus" else "keine Daten") +
+                    ", Stempelkarte: " + (stempel?.state ?: "nicht verfügbar"),
             )
-            WidgetData.Loaded(events, quick, weather)
+            WidgetData.Loaded(events, quick, weather, stempel)
         }
     } catch (e: Exception) {
         Log.e(TAG, "Widget konnte nicht laden", e)
@@ -141,7 +152,12 @@ internal data class QuickButton(val calendarId: Long, val name: String, val colo
 internal sealed interface WidgetData {
     data object Loading : WidgetData
     data object NoPermission : WidgetData
-    data class Loaded(val events: List<EventInstance>, val quick: List<QuickButton>, val weather: String?) : WidgetData
+    data class Loaded(
+        val events: List<EventInstance>,
+        val quick: List<QuickButton>,
+        val weather: String?,
+        val stempel: StempelStatus? = null,
+    ) : WidgetData
     data class Failed(val message: String) : WidgetData
 }
 
@@ -187,9 +203,11 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
         val empty = (state is WidgetData.Loaded && state.events.isEmpty()) || state is WidgetData.Loading
         val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
         val weather = (state as? WidgetData.Loaded)?.weather
-        // Wetter als eigene Pille, so breit wie ihr Inhalt, mittig, abgesetzt von den Terminen (Wunsch des Nutzers).
-        if (weather != null) {
-            WeatherPill(weather)
+        val stempel = (state as? WidgetData.Loaded)?.stempel
+        // Wetter als eigene Pille, so breit wie ihr Inhalt, abgesetzt von den Terminen (Wunsch des Nutzers):
+        // mittig, mit Stempel-Knopf links und der Knopf rechts (Wunsch des Nutzers).
+        if (weather != null || stempel != null) {
+            TopRow(weather, stempel)
             Spacer(GlanceModifier.height(6.dp))
         }
         if (empty) {
@@ -266,21 +284,69 @@ private fun WidgetButton(
     }
 }
 
+/** Wetter-Pille und Stempel-Knopf. Ohne Stempelkarte steht das Wetter wie früher mittig. */
+@Composable
+private fun TopRow(weather: String?, stempel: StempelStatus?) {
+    Row(
+        modifier = GlanceModifier.fillMaxWidth(),
+        horizontalAlignment = if (stempel == null) Alignment.CenterHorizontally else Alignment.Start,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (weather != null) WeatherPill(weather)
+        if (stempel != null) {
+            Spacer(GlanceModifier.defaultWeight())
+            StempelButton(stempel)
+        }
+    }
+}
+
 @Composable
 private fun WeatherPill(text: String) {
-    // Mittig über die volle Breite, die Pille selbst nur so breit wie der Text (wie die Knöpfe, 36 dp hoch).
-    Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            // Antippen öffnet Chip (Wunsch des Nutzers).
-            modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(BG)
-                .padding(horizontal = 18.dp).clickable(actionStartActivity<MainActivity>()),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Größere Schrift (Wunsch des Nutzers, vorher 13 sp).
+    // Die Pille ist nur so breit wie der Text.
+    Box(
+        // Antippen öffnet Chip (Wunsch des Nutzers).
+        modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(BG)
+            .padding(horizontal = 18.dp).clickable(actionStartActivity<MainActivity>()),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Größere Schrift (Wunsch des Nutzers, vorher 13 sp).
+        Text(
+            text = text,
+            maxLines = 1,
+            style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center),
+        )
+    }
+}
+
+/**
+ * Stempel-Knopf der FH Stempelkarte (Wunsch des Nutzers): „Einloggen“ (rot, wenn die Stempelkarte gerade
+ * erinnert, sonst schwarz wie die Wetter-Pille); eingeloggt grün mit der heutigen Arbeitszeit, Tippen
+ * loggt aus. Die Zeit ist ein `Chronometer`, den der Launcher selbst weiterzählt – kein minütliches
+ * Neuzeichnen, also kein Akkuverbrauch durch Chip. Danach öffnet die Stempelkarte ZEUS.
+ */
+@Composable
+private fun StempelButton(stempel: StempelStatus) {
+    val context = LocalContext.current
+    val bg = stempel.color?.let { Color(it) } ?: BG
+    val fg = if (bg.luminance() > 0.5f) Color.Black else Color.White
+    Box(
+        modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(bg)
+            .padding(horizontal = 18.dp)
+            .clickable(actionStartActivity(StempelkarteActivity.intent(context, stempel.tapAction))),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (stempel.timeKnown) {
+            val worked = stempel.workedMs(System.currentTimeMillis())
+            val views = RemoteViews(context.packageName, R.layout.widget_chronometer).apply {
+                setChronometer(R.id.stempel_chronometer, SystemClock.elapsedRealtime() - worked, null, true)
+                setTextColor(R.id.stempel_chronometer, fg.toArgb())
+            }
+            AndroidRemoteViews(views)
+        } else {
             Text(
-                text = text,
+                text = if (stempel.loggedIn) "Eingeloggt" else "Einloggen",
                 maxLines = 1,
-                style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center),
+                style = TextStyle(color = ColorProvider(fg), fontWeight = FontWeight.Medium, fontSize = 16.sp),
             )
         }
     }
