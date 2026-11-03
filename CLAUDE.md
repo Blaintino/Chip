@@ -135,8 +135,10 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   fehlgeschlagen).
 - **Stempel-Knopf im Widget** (Wunsch des Nutzers, 2026-11-03): Anbindung an die eigene App FH Stempelkarte
   (`Blaintino/FH-Stempelkarte`, Vertrag dort in `INTEROP.md`), `stempel/Stempelkarte.kt`. Rechts in der Zeile der
-  Wetter-Pille (`TopRow`; mit Knopf steht das Wetter links, ohne Stempelkarte wie früher mittig): „Einloggen“
-  (Farbe der Stempelkarte, d. h. rot bei `NICHT_EINGELOGGT`, sonst schwarz wie die Pille), eingeloggt grün mit
+  Wetter-Pille (`TopRow`; mit Knopf steht das Wetter links, ohne Stempelkarte wie früher mittig): nicht
+  eingeloggt ein **rundes Symbol** (`ic_stempel_login`, 40 dp; vorher Text „Einloggen“ – dem Nutzer dauerhaft zu
+  aufdringlich, eine sinnvolle Regel zum Ausblenden fiel ihm nicht ein) in der Farbe der Stempelkarte (rot bei
+  `NICHT_EINGELOGGT`, sonst schwarz wie die Pille), eingeloggt grün mit
   der **heutigen Arbeitszeit** (Summe aller Sitzungen, rechnet die Stempelkarte), Tippen = ausloggen. Die Zeit
   ist ein `Chronometer` per `AndroidRemoteViews` (`res/layout/widget_chronometer.xml`), Basis aus
   `arbeit_heute_ms` + `arbeit_laeuft_seit` – zählt im Launcher selbst, **kein minütliches Neuzeichnen** (Akku;
@@ -146,7 +148,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   `signature`-Berechtigung `de.fhstempelkarte.permission.INTEROP` (gleicher Keystore): **Debug-Chip sieht den
   Knopf nie**; Stempelkarte muss vor Chip installiert sein (v17+), Arbeitszeit braucht die Stempelkarte mit
   `WorkTime`. `WidgetStatus` nennt den gelesenen Stempelkarten-Zustand.
-  v61 auf dem Gerät (2026-11-03): nach Aus-/Einloggen kein Timer zu sehen, Ursache unbekannt. Deshalb zweiter
+  v61/v63 auf dem Gerät (2026-11-03): Timer und Zeit laufen, das Nachziehen nach dem Stempeln dauert eine Weile
+  (für den Nutzer in Ordnung). Anfangs (v61) war kein Timer zu sehen. Deshalb zweiter
   Weg fürs Neuzeichnen: WorkManager-Content-URI-Auslöser auf den Status-Provider (`Background.watchStempelkarte`,
   `StempelChangeWorker`, meldet sich nach jedem Lauf neu an) zusätzlich zum Broadcast. Fehlersuche ohne adb:
   Abschnitt „FH Stempelkarte“ in den Einstellungen (`Stempelkarte.describe`: lesbar?, Zustand, Arbeitszeit,

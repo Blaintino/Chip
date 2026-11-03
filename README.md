@@ -40,7 +40,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   aktuelle Temperatur, Höchst-/Tiefstwert von heute und Regenhinweis (ab 40 % für den Rest des Tages, z. B. „☂ ab 15 Uhr
   (70 %)“), stündlich aktualisiert. Daten: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
 - **Stempel-Knopf im Widget** (mit der eigenen App [FH Stempelkarte](https://github.com/Blaintino/FH-Stempelkarte),
-  Release-Builds beider Apps): rechts neben der Wetter-Pille „Einloggen“ (rot, wenn die Stempelkarte erinnert);
+  Release-Builds beider Apps): rechts neben der Wetter-Pille ein rundes Einloggen-Symbol (rot, wenn die Stempelkarte erinnert);
   eingeloggt grün mit der heutigen Arbeitszeit (über mehrmaliges Ein-/Ausloggen aufsummiert), Tippen loggt aus.
   Danach öffnet die Stempelkarte ZEUS. Ohne Stempelkarte fehlt der Knopf, das Wetter steht mittig.
 - **Widget „Heute“**: ohne Kopfzeile, schwarze Fläche nur hinter den Terminen (ohne Termine bleiben nur die Knöpfe, dann oben), scrollbare Liste der heutigen Termine mit Uhrzeit, Titel und
