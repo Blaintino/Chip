@@ -54,6 +54,7 @@ import de.blaintino.chip.data.Formats
 import de.blaintino.chip.data.QuickAddCalendars
 import de.blaintino.chip.data.Subscription
 import de.blaintino.chip.data.SubscriptionStore
+import de.blaintino.chip.stempel.Stempelkarte
 import de.blaintino.chip.sync.SubscriptionSync
 import de.blaintino.chip.widget.TodayWidget
 import de.blaintino.chip.widget.WidgetStatus
@@ -223,6 +224,21 @@ fun CalendarsScreen(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 ) { Text("Widget neu zeichnen") }
             }
+        }
+
+        item { SectionLabel("FH Stempelkarte (Knopf im Widget)") }
+        item {
+            val info = remember(localVersion, version) {
+                val signal = Stempelkarte.lastSignal(context)
+                Stempelkarte.describe(context) + "\nLetzte Wechselmeldung: " +
+                    (signal?.let { (t, s) -> "${Formats.dateTime(t)} – $s" } ?: "noch keine")
+            }
+            Text(
+                info,
+                modifier = Modifier.padding(horizontal = 16.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         item { SectionLabel("In Chip anzeigen") }
