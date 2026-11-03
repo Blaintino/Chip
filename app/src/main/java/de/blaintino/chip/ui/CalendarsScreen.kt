@@ -232,7 +232,7 @@ fun CalendarsScreen(
             val info = remember(localVersion, version) {
                 val signal = Stempelkarte.lastSignal(context)
                 Stempelkarte.describe(context) + "\n" + StempelVisibility.describe(context) +
-                    "\nKnopf sichtbar: erkannt oder eingeloggt, heute schon gearbeitet, oder 1 h vor bis 1 h nach den Terminen der Arbeitskalender." +
+                    "\nKnopf sichtbar: erkannt oder eingeloggt, oder 1 h vor bis 1 h nach den Terminen der Arbeitskalender." +
                     "\nLetzte Wechselmeldung: " +
                     (signal?.let { (t, s) -> "${Formats.dateTime(t)} – $s" } ?: "noch keine")
             }
