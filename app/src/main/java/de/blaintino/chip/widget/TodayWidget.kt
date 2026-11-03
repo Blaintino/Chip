@@ -65,6 +65,10 @@ import java.time.LocalDate
 import android.os.SystemClock
 import android.widget.RemoteViews
 import androidx.glance.appwidget.AndroidRemoteViews
+import androidx.glance.ColorFilter
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.layout.size
 import de.blaintino.chip.R
 import de.blaintino.chip.stempel.StempelStatus
 import de.blaintino.chip.stempel.Stempelkarte
@@ -319,8 +323,8 @@ private fun WeatherPill(text: String) {
 }
 
 /**
- * Stempel-Knopf der FH Stempelkarte (Wunsch des Nutzers): „Einloggen“ (rot, wenn die Stempelkarte gerade
- * erinnert, sonst schwarz wie die Wetter-Pille); eingeloggt grün mit der heutigen Arbeitszeit, Tippen
+ * Stempel-Knopf der FH Stempelkarte (Wunsch des Nutzers): rundes Einloggen-Symbol (rot, wenn die Stempelkarte
+ * gerade erinnert, sonst schwarz wie die Wetter-Pille); eingeloggt grün mit der heutigen Arbeitszeit, Tippen
  * loggt aus. Die Zeit ist ein `Chronometer`, den der Launcher selbst weiterzählt – kein minütliches
  * Neuzeichnen, also kein Akkuverbrauch durch Chip. Danach öffnet die Stempelkarte ZEUS.
  */
@@ -329,10 +333,26 @@ private fun StempelButton(stempel: StempelStatus) {
     val context = LocalContext.current
     val bg = stempel.color?.let { Color(it) } ?: BG
     val fg = if (bg.luminance() > 0.5f) Color.Black else Color.White
+    val action = actionStartActivity(StempelkarteActivity.intent(context, stempel.tapAction))
+    if (!stempel.loggedIn) {
+        // Nicht eingeloggt: nur ein rundes Symbol statt „Einloggen“ (Wunsch des Nutzers, der Text war dauerhaft
+        // zu aufdringlich), gleiche Höhe wie die Wetter-Pille.
+        Box(
+            modifier = GlanceModifier.size(40.dp).cornerRadius(20.dp).background(bg).clickable(action),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                provider = ImageProvider(R.drawable.ic_stempel_login),
+                contentDescription = "Einloggen",
+                colorFilter = ColorFilter.tint(ColorProvider(fg)),
+                modifier = GlanceModifier.size(22.dp),
+            )
+        }
+        return
+    }
     Box(
         modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(bg)
-            .padding(horizontal = 18.dp)
-            .clickable(actionStartActivity(StempelkarteActivity.intent(context, stempel.tapAction))),
+            .padding(horizontal = 18.dp).clickable(action),
         contentAlignment = Alignment.Center,
     ) {
         if (stempel.timeKnown) {
@@ -344,7 +364,7 @@ private fun StempelButton(stempel: StempelStatus) {
             AndroidRemoteViews(views)
         } else {
             Text(
-                text = if (stempel.loggedIn) "Eingeloggt" else "Einloggen",
+                text = "Eingeloggt",
                 maxLines = 1,
                 style = TextStyle(color = ColorProvider(fg), fontWeight = FontWeight.Medium, fontSize = 16.sp),
             )
