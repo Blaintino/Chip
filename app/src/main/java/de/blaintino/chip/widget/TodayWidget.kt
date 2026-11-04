@@ -125,7 +125,11 @@ class TodayWidget : GlanceAppWidget() {
             // Neu zeichnen zum nächsten Terminende bzw. wenn der Stempel-Knopf erscheinen/verschwinden soll.
             Background.scheduleWidgetRefreshAt(
                 context,
-                listOfNotNull(WidgetFilter.nextChange(events, now), StempelVisibility.nextChange(stempelWindow, now)).minOrNull(),
+                listOfNotNull(
+                    WidgetFilter.nextChange(events, now),
+                    StempelVisibility.nextChange(stempelWindow, now),
+                    stempel?.nextChange(now),
+                ).minOrNull(),
             )
             WidgetStatus.record(
                 context,
@@ -364,9 +368,12 @@ private fun StempelButton(stempel: StempelStatus) {
         contentAlignment = Alignment.Center,
     ) {
         if (stempel.timeKnown) {
-            val worked = stempel.workedMs(System.currentTimeMillis())
+            // Netto nach Pausenregel; während fehlende Pause abgezogen wird, steht der Timer (Neuzeichnen zu den
+            // Wechseln über scheduleWidgetRefreshAt).
+            val now = System.currentTimeMillis()
+            val worked = stempel.workedMs(now)
             val views = RemoteViews(context.packageName, R.layout.widget_chronometer).apply {
-                setChronometer(R.id.stempel_chronometer, SystemClock.elapsedRealtime() - worked, null, true)
+                setChronometer(R.id.stempel_chronometer, SystemClock.elapsedRealtime() - worked, null, !stempel.paused(now))
                 setTextColor(R.id.stempel_chronometer, fg.toArgb())
             }
             AndroidRemoteViews(views)

@@ -37,6 +37,7 @@ object Stempelkarte {
                 color = c.intOrNull("farbe"),
                 workClosedMs = c.longOrZero("arbeit_heute_ms"),
                 workRunningSince = c.longOrZero("arbeit_laeuft_seit"),
+                workBreakMs = c.longOrZero("arbeit_pausen_ms"),
             )
         }
     } catch (e: SecurityException) {
@@ -65,9 +66,11 @@ object Stempelkarte {
             ?: return "Nicht lesbar – FH Stempelkarte fehlt, ist älter als v17, oder Chip hat die Berechtigung nicht " +
                 "(Debug-Build, oder Chip wurde vor der Stempelkarte installiert: dann Chip neu installieren)."
         val time = when {
-            s.timeKnown -> ", heute ${formatDuration(s.workedMs(now))} (läuft seit ${de.blaintino.chip.data.Formats.time(s.workRunningSince)})"
+            s.timeKnown -> ", heute netto ${formatDuration(s.workedMs(now))} (brutto ${formatDuration(s.grossMs(now))}, " +
+                "Pausen genommen ${formatDuration(s.workBreakMs)}, läuft seit ${de.blaintino.chip.data.Formats.time(s.workRunningSince)}" +
+                (if (s.paused(now)) ", steht gerade: fehlende Pause" else "") + ")"
             s.loggedIn -> ", Beginn unbekannt (Stempelkarte ab v19 und einmal neu einloggen)"
-            s.workClosedMs > 0 -> ", heute ${formatDuration(s.workClosedMs)}"
+            s.workClosedMs > 0 -> ", heute netto ${formatDuration(s.workedMs(now))}"
             else -> ""
         }
         return "Zustand ${s.state}$time"
@@ -95,18 +98,61 @@ data class StempelStatus(
     val workClosedMs: Long,
     /** Beginn der laufenden Sitzung (ms), 0 = keine bzw. unbekannt. */
     val workRunningSince: Long,
+    /** Angerechnete Pausen heute (ausgeloggt ≥ 15 min), ältere Stempelkarte: 0. */
+    val workBreakMs: Long = 0,
 ) {
     val loggedIn get() = state == "EINGELOGGT"
 
     /** Arbeitszeit läuft und ist bekannt – dann zeigt der Knopf sie statt „Eingeloggt“. */
     val timeKnown get() = loggedIn && workRunningSince > 0
 
-    /** Heutige Arbeitszeit bis [now] (ms). */
-    fun workedMs(now: Long): Long =
+    /** Brutto-Anwesenheit heute bis [now] (ms). */
+    fun grossMs(now: Long): Long =
         workClosedMs + if (workRunningSince > 0) (now - workRunningSince).coerceAtLeast(0) else 0
+
+    /** Fehlende Pause bis 30 min (ab 6 h) und die weiteren bis 45 min (ab 9 h). */
+    private val missing1 get() = (30 * MIN - workBreakMs).coerceAtLeast(0)
+    private val missing2 get() = (45 * MIN - workBreakMs).coerceAtLeast(0) - missing1
+
+    /**
+     * Heutige Nettoarbeitszeit bis [now] (ms), Pausen nach § 4 ArbZG wie in der Stempelkarte (`WorkTime.net`,
+     * Wunsch des Nutzers): mehr als 6 h → 30 min, mehr als 9 h → 45 min insgesamt; nur die noch fehlende Pause
+     * wird gleitend abgezogen – die Zeit steht bei 6:00 bzw. 9:00, bis sie verstrichen ist.
+     */
+    fun workedMs(now: Long): Long {
+        var n = grossMs(now)
+        if (n > 6 * HOUR) n = maxOf(6 * HOUR, n - missing1)
+        if (n > 9 * HOUR) n = maxOf(9 * HOUR, n - missing2)
+        return n
+    }
+
+    /** Brutto-Zeitpunkte, an denen der Timer anhält bzw. weiterläuft (nur Stufen mit fehlender Pause). */
+    private fun breakPoints(): List<Pair<Long, Long>> = listOfNotNull(
+        (6 * HOUR to 6 * HOUR + missing1).takeIf { missing1 > 0 },
+        (9 * HOUR + missing1 to 9 * HOUR + missing1 + missing2).takeIf { missing2 > 0 },
+    )
+
+    /** Steht der Timer gerade (fehlende Pause wird abgezogen)? */
+    fun paused(now: Long): Boolean {
+        if (!timeKnown) return false
+        val g = grossMs(now)
+        return breakPoints().any { (from, to) -> g >= from && g < to }
+    }
+
+    /** Nächster Zeitpunkt (ms), an dem der Timer anhält oder weiterläuft – dann neu zeichnen; null = keiner. */
+    fun nextChange(now: Long): Long? {
+        if (!timeKnown) return null
+        val g = grossMs(now)
+        return breakPoints().flatMap { listOf(it.first, it.second) }.filter { it > g }.minOrNull()?.let { now + (it - g) }
+    }
 
     /** Was ein Tipp auf den Knopf auslöst: eingeloggt → ausloggen, sonst einloggen. */
     val tapAction get() = if (loggedIn) Stempelkarte.ACTION_LOGOUT else Stempelkarte.ACTION_LOGIN
+
+    private companion object {
+        const val MIN = 60_000L
+        const val HOUR = 60 * MIN
+    }
 }
 
 /**
