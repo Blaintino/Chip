@@ -41,7 +41,8 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   (70 %)“), stündlich aktualisiert. Daten: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
 - **Stempel-Knopf im Widget** (mit der eigenen App [FH Stempelkarte](https://github.com/Blaintino/FH-Stempelkarte),
   Release-Builds beider Apps): rechts neben der Wetter-Pille ein rundes Einloggen-Symbol (rot, wenn die Stempelkarte erinnert);
-  eingeloggt grün mit der heutigen Arbeitszeit (über mehrmaliges Ein-/Ausloggen aufsummiert), Tippen loggt aus.
+  eingeloggt grün mit der heutigen Arbeitszeit (über mehrmaliges Ein-/Ausloggen aufsummiert, netto: ab 6 h 30 min
+  und ab 9 h weitere 15 min Pause abgezogen, soweit nicht schon ausgeloggt pausiert – die Zeit steht dann), Tippen loggt aus.
   Danach öffnet die Stempelkarte ZEUS. Sichtbar nur bei Bedarf: wenn die Stempelkarte dich an der FH erkannt hat
   oder du eingeloggt bist, oder von 1 h vor dem ersten bis 1 h nach dem
   letzten Termin in Kalendern mit „Stundenplan“ oder „Arbeit“ im Namen. Sonst (und ohne Stempelkarte) steht das Wetter mittig.

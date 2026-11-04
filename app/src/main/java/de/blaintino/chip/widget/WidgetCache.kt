@@ -24,7 +24,7 @@ internal object WidgetCache {
             put("weather", data.weather ?: JSONObject.NULL)
             data.stempel?.let { s ->
                 put("stempel", JSONObject().put("state", s.state).put("color", s.color ?: JSONObject.NULL)
-                    .put("closed", s.workClosedMs).put("since", s.workRunningSince))
+                    .put("closed", s.workClosedMs).put("since", s.workRunningSince).put("breaks", s.workBreakMs))
             }
             put("quick", JSONArray().apply {
                 data.quick.forEach { put(JSONObject().put("id", it.calendarId).put("name", it.name).put("color", it.color)) }
@@ -82,6 +82,7 @@ internal object WidgetCache {
                     color = if (s.isNull("color")) null else s.getInt("color"),
                     workClosedMs = s.optLong("closed"),
                     workRunningSince = s.optLong("since"),
+                    workBreakMs = s.optLong("breaks"),
                 )
             },
         )

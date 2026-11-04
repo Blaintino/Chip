@@ -147,7 +147,11 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   der **heutigen Arbeitszeit** (Summe aller Sitzungen, rechnet die Stempelkarte), Tippen = ausloggen. Die Zeit
   ist ein `Chronometer` per `AndroidRemoteViews` (`res/layout/widget_chronometer.xml`), Basis aus
   `arbeit_heute_ms` + `arbeit_laeuft_seit` – zählt im Launcher selbst, **kein minütliches Neuzeichnen** (Akku;
-  Nachteil: zeigt Sekunden). Ohne bekannten Beginn „Eingeloggt“. Sprungbrett `StempelkarteActivity` startet
+  Nachteil: zeigt Sekunden). **Netto nach § 4 ArbZG** (Wunsch des Nutzers, 2026-11-04; gleiche Regel wie
+  `WorkTime.net` der Stempelkarte, `StempelStatus.workedMs`, Tests `StempelStatusTest`): > 6 h → 30 min, > 9 h →
+  45 min Pause insgesamt, genommene Pausen (`arbeit_pausen_ms`, ausgeloggt ≥ 15 min) zählen; die fehlende Pause
+  wird gleitend abgezogen – der Chronometer **steht** dann (`paused`, `setChronometer(…, started = false)`), das
+  Widget zeichnet zu `StempelStatus.nextChange` neu (kann im Doze etwas später kommen). Ohne bekannten Beginn „Eingeloggt“. Sprungbrett `StempelkarteActivity` startet
   `de.fhstempelkarte.action.EINLOGGEN`/`AUSLOGGEN` (dann ZEUS), Fehler als Toast. `StempelReceiver`
   (`ZUSTAND_GEAENDERT`, nur mit Berechtigung) zeichnet neu; Status auch in `WidgetCache`. Alles hinter der
   `signature`-Berechtigung `de.fhstempelkarte.permission.INTEROP` (gleicher Keystore): **Debug-Chip sieht den
