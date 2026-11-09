@@ -52,6 +52,10 @@ import de.blaintino.chip.data.CalendarInfo
 import de.blaintino.chip.data.EventDraft
 import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.Formats
+import de.blaintino.chip.data.Repeat
+import de.blaintino.chip.data.RepeatKind
+import de.blaintino.chip.data.RepeatRules
+import de.blaintino.chip.data.SeriesScope
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -64,7 +68,10 @@ private val TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN)
 private val DATE = DateTimeFormatter.ofPattern("EEE, d. MMM yyyy", Locale.GERMAN)
 
 /**
- * Editor für Einzeltermine. Bei ganztägigen Terminen ist [EventDraft.end] exklusiv (Mitternacht
+ * Editor für Termine und Serien (Wunsch des Nutzers). Bei einem Vorkommen einer Serie fragt Speichern
+ * bzw. Löschen, ob nur dieser Termin, dieser und alle folgenden oder die ganze Serie gemeint ist.
+ * Einzeln geänderte Serientermine ([EventDraft.originalId]) bekommen keine eigene Wiederholung.
+ * Bei ganztägigen Terminen ist [EventDraft.end] exklusiv (Mitternacht
  * nach dem letzten Tag); angezeigt wird der letzte Tag selbst.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,8 +80,9 @@ fun EventEditor(
     draft: EventDraft,
     calendars: List<CalendarInfo>,
     onDismiss: () -> Unit,
-    onSave: (EventDraft) -> Unit,
-    onDelete: (() -> Unit)?,
+    /** Bei Vorkommen einer Serie mit gewähltem Umfang, sonst null. */
+    onSave: (EventDraft, SeriesScope?) -> Unit,
+    onDelete: ((SeriesScope) -> Unit)?,
 ) {
     val zone = ZoneId.systemDefault()
     val startZ = Instant.ofEpochMilli(draft.start).atZone(zone)
@@ -96,6 +104,11 @@ fun EventEditor(
     var pickTime by remember { mutableStateOf<Boolean?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     var calendarMenu by remember { mutableStateOf(false) }
+    var repeat by remember { mutableStateOf(draft.repeat) }
+    var repeatMenu by remember { mutableStateOf(false) }
+    var pickUntil by remember { mutableStateOf(false) }
+    var askScope by remember { mutableStateOf<EventDraft?>(null) }
+    val isSeries = draft.id != null && draft.recurring && draft.originalId == null
 
     val selectedCalendar = calendars.firstOrNull { it.id == calendarId }
 
@@ -111,17 +124,17 @@ fun EventEditor(
             val e = endDate.atTime(endTime).atZone(zone).toInstant().toEpochMilli()
             end = maxOf(e, start)
         }
-        onSave(
-            draft.copy(
-                calendarId = calendarId,
-                title = title.trim(),
-                location = location.trim(),
-                description = description.trim(),
-                allDay = allDay,
-                start = start,
-                end = end,
-            ),
+        val updated = draft.copy(
+            calendarId = calendarId,
+            title = title.trim(),
+            location = location.trim(),
+            description = description.trim(),
+            allDay = allDay,
+            start = start,
+            end = end,
+            repeat = if (draft.originalId != null) Repeat.NONE else repeat,
         )
+        if (isSeries) askScope = updated else onSave(updated, null)
     }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -181,6 +194,58 @@ fun EventEditor(
                     }
                     DateTimeRow("Beginn", startDate, startTime, allDay, onDate = { pickDate = true }, onTime = { pickTime = true })
                     DateTimeRow("Ende", endDate, endTime, allDay, onDate = { pickDate = false }, onTime = { pickTime = false })
+
+                    if (draft.originalId != null) {
+                        Text(
+                            "Einzeln geänderter Termin einer Serie.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Column {
+                            Text("Wiederholen", style = MaterialTheme.typography.labelLarge)
+                            Box {
+                                OutlinedButton(onClick = { repeatMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(RepeatRules.label(repeat.kind, startDate), modifier = Modifier.weight(1f))
+                                }
+                                DropdownMenu(expanded = repeatMenu, onDismissRequest = { repeatMenu = false }) {
+                                    val kinds = RepeatRules.choices(startDate).let {
+                                        if (draft.repeat.kind == RepeatKind.CUSTOM) it + RepeatKind.CUSTOM else it
+                                    }
+                                    kinds.forEach { kind ->
+                                        DropdownMenuItem(
+                                            text = { Text(RepeatRules.label(kind, startDate)) },
+                                            onClick = {
+                                                repeat = if (kind == RepeatKind.NONE || kind == RepeatKind.CUSTOM) Repeat(kind)
+                                                else Repeat(kind, repeat.until)
+                                                repeatMenu = false
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (repeat.kind != RepeatKind.NONE && repeat.kind != RepeatKind.CUSTOM) {
+                            Column {
+                                Text("Endet", style = MaterialTheme.typography.labelLarge)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    OutlinedButton(onClick = { pickUntil = true }, modifier = Modifier.weight(1f)) {
+                                        Text(repeat.until?.let { "am " + DATE.format(it) } ?: "Nie")
+                                    }
+                                    if (repeat.until != null) {
+                                        TextButton(onClick = { repeat = repeat.copy(until = null) }) { Text("Nie") }
+                                    }
+                                }
+                            }
+                            if (repeat.kind == RepeatKind.MONTHLY_DATE && startDate.dayOfMonth > 28) {
+                                Text(
+                                    "In Monaten ohne den ${startDate.dayOfMonth}. entfällt der Termin.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
 
                     OutlinedTextField(
                         value = description,
@@ -252,15 +317,106 @@ fun EventEditor(
         )
     }
 
-    if (confirmDelete && onDelete != null) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Termin löschen?") },
-            text = { Text("„${draft.title}“ wird aus dem Kalender gelöscht.") },
-            confirmButton = { TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Löschen") } },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Abbrechen") } },
+    if (pickUntil) {
+        val initial = repeat.until ?: startDate.plusMonths(3)
+        val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+        DatePickerDialog(
+            onDismissRequest = { pickUntil = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { ms ->
+                        val d = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate()
+                        repeat = repeat.copy(until = maxOf(d, startDate))
+                    }
+                    pickUntil = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { pickUntil = false }) { Text("Abbrechen") } },
+        ) { DatePicker(state = state) }
+    }
+
+    askScope?.let { updated ->
+        // Neue Regel (andere Art) gilt ab diesem Termin; „Nur dieser“ und „Alle“ nur bei gleicher Art.
+        val sameKind = updated.repeat.kind == draft.repeat.kind
+        val sameRule = updated.repeat == draft.repeat
+        val first = draft.instanceStart != null && draft.instanceStart == draft.seriesStart
+        ScopeDialog(
+            title = "Serientermin speichern",
+            text = if (sameKind) "Welche Termine sollen sich ändern?" else "Die neue Wiederholung gilt ab diesem Termin.",
+            options = buildList {
+                if (sameRule) add(SeriesScope.THIS to "Nur diesen Termin")
+                if (!first || !sameKind) add(SeriesScope.FOLLOWING to if (first) "Ganze Serie" else "Diesen und alle folgenden")
+                if (sameKind) add(SeriesScope.ALL to "Alle Termine der Serie")
+            },
+            onPick = { scope -> askScope = null; onSave(updated, scope) },
+            onDismiss = { askScope = null },
         )
     }
+
+    if (confirmDelete && onDelete != null) {
+        when {
+            isSeries -> ScopeDialog(
+                title = "Serientermin löschen",
+                text = "„${draft.title}“ – welche Termine sollen gelöscht werden?",
+                options = listOf(
+                    SeriesScope.THIS to "Nur diesen Termin",
+                    SeriesScope.FOLLOWING to "Diesen und alle folgenden",
+                    SeriesScope.ALL to "Ganze Serie",
+                ),
+                destructive = true,
+                onPick = { scope -> confirmDelete = false; onDelete(scope) },
+                onDismiss = { confirmDelete = false },
+            )
+            draft.originalId != null -> ScopeDialog(
+                title = "Serientermin löschen",
+                text = "„${draft.title}“ wurde einzeln geändert. Was soll gelöscht werden?",
+                options = listOf(
+                    SeriesScope.THIS to "Nur diesen Termin",
+                    SeriesScope.FOLLOWING to "Diesen und alle folgenden",
+                    SeriesScope.ALL to "Ganze Serie",
+                ),
+                destructive = true,
+                onPick = { scope -> confirmDelete = false; onDelete(scope) },
+                onDismiss = { confirmDelete = false },
+            )
+            else -> AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text("Termin löschen?") },
+                text = { Text("„${draft.title}“ wird aus dem Kalender gelöscht.") },
+                confirmButton = { TextButton(onClick = { confirmDelete = false; onDelete(SeriesScope.THIS) }) { Text("Löschen") } },
+                dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Abbrechen") } },
+            )
+        }
+    }
+}
+
+/** Auswahl des Umfangs bei Serien: ein Knopf je Möglichkeit, untereinander. */
+@Composable
+private fun ScopeDialog(
+    title: String,
+    text: String,
+    options: List<Pair<SeriesScope, String>>,
+    onPick: (SeriesScope) -> Unit,
+    onDismiss: () -> Unit,
+    destructive: Boolean = false,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(text)
+                Spacer(Modifier.padding(top = 4.dp))
+                options.forEach { (scope, label) ->
+                    TextButton(onClick = { onPick(scope) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(label, color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } },
+    )
 }
 
 @Composable
@@ -306,7 +462,6 @@ fun EventDetails(ev: EventInstance, calendar: CalendarInfo?, onDismiss: () -> Un
                 }
                 val reason = when {
                     calendar == null || !calendar.writable -> "Dieser Kalender ist nur lesbar."
-                    ev.recurring -> "Serientermine bearbeitest du vorerst in der Kalender-App des Kontos (z. B. Google Kalender)."
                     else -> null
                 }
                 reason?.let {

@@ -51,7 +51,22 @@ data class EventDraft(
     val start: Long,
     val end: Long,
     val recurring: Boolean = false,
+    /** Wiederholung (Editor-Auswahl; beim Laden aus der Regel der Serie gelesen). */
+    val repeat: Repeat = Repeat.NONE,
+    /** Bisherige Regel der Serie (roh), bleibt bei [RepeatKind.CUSTOM] erhalten. */
+    val rrule: String? = null,
+    /** Gesetzt, wenn dieser Termin ein einzeln geänderter Termin einer Serie ist (Ausnahme-Zeile). */
+    val originalId: Long? = null,
+    /** Vorkommen einer Serie: Instances.BEGIN (roh) bzw. bei Ausnahmen ORIGINAL_INSTANCE_TIME. */
+    val instanceBegin: Long? = null,
+    /** Vorkommen einer Serie: angezeigter Beginn beim Öffnen (wie [start]), für das Verschieben der ganzen Serie. */
+    val instanceStart: Long? = null,
+    /** Beginn des ersten Termins der Serie (wie [start] umgerechnet). */
+    val seriesStart: Long? = null,
 )
+
+/** Welche Termine einer Serie eine Änderung oder das Löschen betrifft. */
+enum class SeriesScope { THIS, FOLLOWING, ALL }
 
 /**
  * Zugriff auf die Kalenderdatenbank von Android (CalendarContract). Google-Kalender (auch
@@ -166,6 +181,8 @@ class CalendarRepository(context: Context) {
             CalendarContract.Events.DTEND,
             CalendarContract.Events.RRULE,
             CalendarContract.Events.RDATE,
+            CalendarContract.Events.ORIGINAL_ID,
+            CalendarContract.Events.ORIGINAL_INSTANCE_TIME,
         )
         resolver.query(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id), projection, null, null, null)?.use { c ->
             if (!c.moveToFirst()) return null
@@ -177,6 +194,15 @@ class CalendarRepository(context: Context) {
                 start = utcMidnightToLocal(start)
                 end = utcMidnightToLocal(end)
             }
+            val rrule = c.getString(7)?.takeIf { it.isNotBlank() }
+            val rdate = c.getString(8)?.takeIf { it.isNotBlank() }
+            val zone = ZoneId.systemDefault()
+            val startDate = java.time.Instant.ofEpochMilli(start).atZone(zone).toLocalDate()
+            val repeat = when {
+                rrule != null -> RepeatRules.parse(rrule, startDate, zone)
+                rdate != null -> Repeat(RepeatKind.CUSTOM)
+                else -> Repeat.NONE
+            }
             return EventDraft(
                 id = id,
                 calendarId = c.getLong(0),
@@ -186,44 +212,214 @@ class CalendarRepository(context: Context) {
                 allDay = allDay,
                 start = start,
                 end = end,
-                recurring = !c.getString(7).isNullOrEmpty() || !c.getString(8).isNullOrEmpty(),
+                recurring = rrule != null || rdate != null,
+                repeat = repeat,
+                rrule = rrule,
+                originalId = if (c.isNull(9)) null else c.getLong(9).takeIf { it > 0 },
+                instanceBegin = if (c.isNull(10)) null else c.getLong(10),
             )
         }
         return null
     }
 
-    /** Speichert einen neuen oder geänderten Einzeltermin. Serien werden hier nicht bearbeitet. */
+    /**
+     * Termin so, wie er im Editor angezeigt wird: bei Serien das angetippte Vorkommen (Beginn/Ende des
+     * Vorkommens), die Serie selbst steht in [EventDraft.seriesStart].
+     */
+    fun eventForInstance(ev: EventInstance): EventDraft? {
+        val d = event(ev.eventId) ?: return null
+        if (!d.recurring) return d
+        val s = if (d.allDay) utcMidnightToLocal(ev.begin) else ev.begin
+        val e = if (d.allDay) utcMidnightToLocal(ev.end) else ev.end
+        return d.copy(start = s, end = maxOf(e, s), seriesStart = d.start, instanceStart = s, instanceBegin = ev.begin)
+    }
+
+    /**
+     * Speichert einen neuen Termin, einen Einzeltermin oder einen einzeln geänderten Serientermin
+     * (Ausnahme-Zeile). Eine Wiederholung aus dem Editor macht aus einem Einzeltermin eine Serie.
+     */
     fun save(draft: EventDraft): Long {
-        val values = ContentValues().apply {
-            put(CalendarContract.Events.CALENDAR_ID, draft.calendarId)
-            put(CalendarContract.Events.TITLE, draft.title)
-            put(CalendarContract.Events.EVENT_LOCATION, draft.location)
-            put(CalendarContract.Events.DESCRIPTION, draft.description)
-            put(CalendarContract.Events.ALL_DAY, if (draft.allDay) 1 else 0)
-            if (draft.allDay) {
+        val rrule = if (draft.originalId != null) null else ruleFor(draft, draft.start)
+        return write(draft.id, draft, rrule)
+    }
+
+    /** Änderung an einem Vorkommen einer Serie. */
+    fun saveSeries(draft: EventDraft, scope: SeriesScope) {
+        val masterId = draft.id ?: return
+        val instanceBegin = draft.instanceBegin ?: return
+        val master = masterRow(masterId) ?: return
+        when (scope) {
+            SeriesScope.THIS -> {
+                // Ausnahme-Zeile wie die Kalender-App: Android verknüpft sie mit dem Vorkommen.
+                val values = baseValues(draft).apply {
+                    put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, instanceBegin)
+                    put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (master.allDay) 1 else 0)
+                    put(CalendarContract.Events.DTEND, endMillis(draft))
+                    put(CalendarContract.Events.STATUS, CalendarContract.Events.STATUS_CONFIRMED)
+                }
+                resolver.insert(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_EXCEPTION_URI, masterId), values)
+            }
+            SeriesScope.FOLLOWING -> {
+                if (instanceBegin <= master.dtStart) {
+                    write(masterId, draft, ruleFor(draft, draft.start) ?: if (draft.repeat.kind == RepeatKind.CUSTOM) master.rrule else null)
+                } else {
+                    endSeriesBefore(masterId, master, instanceBegin)
+                    val rule = ruleFor(draft, draft.start) ?: if (draft.repeat.kind == RepeatKind.CUSTOM) master.rrule else null
+                    write(null, draft.copy(id = null), rule)
+                }
+            }
+            SeriesScope.ALL -> {
+                // Verschiebung des Vorkommens (Wanduhrzeit) auf den ersten Termin der Serie übertragen.
                 val zone = ZoneId.systemDefault()
-                val startDate = java.time.Instant.ofEpochMilli(draft.start).atZone(zone).toLocalDate()
-                var endDate = java.time.Instant.ofEpochMilli(draft.end).atZone(zone).toLocalDate()
-                if (endDate <= startDate) endDate = startDate.plusDays(1)
-                put(CalendarContract.Events.DTSTART, startDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
-                put(CalendarContract.Events.DTEND, endDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
-                put(CalendarContract.Events.EVENT_TIMEZONE, "UTC")
-            } else {
-                put(CalendarContract.Events.DTSTART, draft.start)
-                put(CalendarContract.Events.DTEND, maxOf(draft.end, draft.start))
-                put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+                fun ldt(ms: Long) = java.time.Instant.ofEpochMilli(ms).atZone(zone).toLocalDateTime()
+                val oldInst = ldt(draft.instanceStart ?: draft.start)
+                val newInst = ldt(draft.start)
+                val shift = java.time.Duration.between(oldInst, newInst)
+                val length = java.time.Duration.between(newInst, ldt(draft.end))
+                val newStart = ldt(draft.seriesStart ?: draft.start).plus(shift)
+                val newEnd = newStart.plus(length)
+                val moved = draft.copy(
+                    start = newStart.atZone(zone).toInstant().toEpochMilli(),
+                    end = newEnd.atZone(zone).toInstant().toEpochMilli(),
+                )
+                val original = RepeatRules.parse(master.rrule, ldt(draft.seriesStart ?: draft.start).toLocalDate(), zone)
+                val sameDay = oldInst.toLocalDate() == newInst.toLocalDate()
+                val rule = when {
+                    draft.repeat == original && sameDay -> master.rrule
+                    draft.repeat.kind == RepeatKind.CUSTOM -> master.rrule
+                    else -> ruleFor(moved, moved.start)
+                }
+                write(masterId, moved, rule)
             }
         }
-        return if (draft.id == null) {
-            resolver.insert(CalendarContract.Events.CONTENT_URI, values)?.let { ContentUris.parseId(it) } ?: -1
-        } else {
-            resolver.update(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, draft.id), values, null, null)
-            draft.id
+    }
+
+    /** Löscht einen Termin; bei Serien je nach [scope] nur das Vorkommen, ab hier oder alles. */
+    fun deleteEvent(draft: EventDraft, scope: SeriesScope) {
+        val id = draft.id ?: return
+        val masterId = draft.originalId ?: id.takeIf { draft.recurring }
+        if (masterId == null) {
+            delete(id)
+            return
+        }
+        when (scope) {
+            SeriesScope.THIS -> if (draft.originalId != null) {
+                // Ausnahme-Zeile absagen: das Vorkommen verschwindet, ohne dass die Serie es zurückbekommt.
+                resolver.update(
+                    ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id),
+                    ContentValues().apply { put(CalendarContract.Events.STATUS, CalendarContract.Events.STATUS_CANCELED) },
+                    null, null,
+                )
+            } else {
+                val begin = draft.instanceBegin ?: return
+                val master = masterRow(masterId) ?: return
+                resolver.insert(
+                    ContentUris.withAppendedId(CalendarContract.Events.CONTENT_EXCEPTION_URI, masterId),
+                    ContentValues().apply {
+                        put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, begin)
+                        put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (master.allDay) 1 else 0)
+                        put(CalendarContract.Events.STATUS, CalendarContract.Events.STATUS_CANCELED)
+                    },
+                )
+            }
+            SeriesScope.FOLLOWING -> {
+                val begin = draft.instanceBegin ?: return
+                val master = masterRow(masterId) ?: return
+                if (begin <= master.dtStart) delete(masterId) else endSeriesBefore(masterId, master, begin)
+            }
+            SeriesScope.ALL -> delete(masterId)
         }
     }
 
     fun delete(eventId: Long) {
         resolver.delete(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId), null, null)
+    }
+
+    private data class MasterRow(val dtStart: Long, val rrule: String?, val allDay: Boolean)
+
+    private fun masterRow(id: Long): MasterRow? {
+        val projection = arrayOf(CalendarContract.Events.DTSTART, CalendarContract.Events.RRULE, CalendarContract.Events.ALL_DAY)
+        resolver.query(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id), projection, null, null, null)?.use { c ->
+            if (!c.moveToFirst()) return null
+            return MasterRow(c.getLong(0), c.getString(1)?.takeIf { it.isNotBlank() }, c.getInt(2) == 1)
+        }
+        return null
+    }
+
+    /** Serie endet vor [cutoff]; später einzeln geänderte Termine fallen mit weg. */
+    private fun endSeriesBefore(masterId: Long, master: MasterRow, cutoff: Long) {
+        val rrule = master.rrule ?: return
+        resolver.update(
+            ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, masterId),
+            ContentValues().apply { put(CalendarContract.Events.RRULE, RepeatRules.endBefore(rrule, cutoff, master.allDay)) },
+            null, null,
+        )
+        resolver.delete(
+            CalendarContract.Events.CONTENT_URI,
+            "${CalendarContract.Events.ORIGINAL_ID} = ? AND ${CalendarContract.Events.ORIGINAL_INSTANCE_TIME} >= ?",
+            arrayOf(masterId.toString(), cutoff.toString()),
+        )
+    }
+
+    /** RRULE aus der Editor-Auswahl, gerechnet ab dem Tag von [start]. */
+    private fun ruleFor(draft: EventDraft, start: Long): String? {
+        val zone = ZoneId.systemDefault()
+        val day = java.time.Instant.ofEpochMilli(start).atZone(zone).toLocalDate()
+        return RepeatRules.build(draft.repeat, day, draft.allDay, zone)
+            ?: if (draft.repeat.kind == RepeatKind.CUSTOM) draft.rrule else null
+    }
+
+    /** Gemeinsame Felder ohne Ende und Regel. */
+    private fun baseValues(draft: EventDraft) = ContentValues().apply {
+        put(CalendarContract.Events.CALENDAR_ID, draft.calendarId)
+        put(CalendarContract.Events.TITLE, draft.title)
+        put(CalendarContract.Events.EVENT_LOCATION, draft.location)
+        put(CalendarContract.Events.DESCRIPTION, draft.description)
+        put(CalendarContract.Events.ALL_DAY, if (draft.allDay) 1 else 0)
+        put(CalendarContract.Events.DTSTART, startMillis(draft))
+        put(CalendarContract.Events.EVENT_TIMEZONE, if (draft.allDay) "UTC" else TimeZone.getDefault().id)
+    }
+
+    private fun allDayDates(draft: EventDraft): Pair<LocalDate, LocalDate> {
+        val zone = ZoneId.systemDefault()
+        val startDate = java.time.Instant.ofEpochMilli(draft.start).atZone(zone).toLocalDate()
+        var endDate = java.time.Instant.ofEpochMilli(draft.end).atZone(zone).toLocalDate()
+        if (endDate <= startDate) endDate = startDate.plusDays(1)
+        return startDate to endDate
+    }
+
+    private fun startMillis(draft: EventDraft): Long =
+        if (draft.allDay) allDayDates(draft).first.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() else draft.start
+
+    private fun endMillis(draft: EventDraft): Long =
+        if (draft.allDay) allDayDates(draft).second.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        else maxOf(draft.end, draft.start)
+
+    /** Schreibt die Termin-Zeile; mit [rrule] als Serie (CalendarContract: DURATION statt DTEND). */
+    private fun write(id: Long?, draft: EventDraft, rrule: String?): Long {
+        val values = baseValues(draft).apply {
+            if (rrule != null) {
+                put(CalendarContract.Events.RRULE, rrule)
+                val duration = if (draft.allDay) {
+                    val (s, e) = allDayDates(draft)
+                    "P${e.toEpochDay() - s.toEpochDay()}D"
+                } else {
+                    "P${(endMillis(draft) - draft.start) / 1000}S"
+                }
+                put(CalendarContract.Events.DURATION, duration)
+                putNull(CalendarContract.Events.DTEND)
+            } else {
+                put(CalendarContract.Events.DTEND, endMillis(draft))
+                putNull(CalendarContract.Events.RRULE)
+                putNull(CalendarContract.Events.DURATION)
+            }
+        }
+        return if (id == null) {
+            resolver.insert(CalendarContract.Events.CONTENT_URI, values)?.let { ContentUris.parseId(it) } ?: -1
+        } else {
+            resolver.update(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id), values, null, null)
+            id
+        }
     }
 
     private fun utcMidnightToLocal(millis: Long): Long =
