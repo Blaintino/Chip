@@ -52,6 +52,7 @@ import de.blaintino.chip.data.CalendarInfo
 import de.blaintino.chip.data.EventDraft
 import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.Formats
+import de.blaintino.chip.data.ReminderRules
 import de.blaintino.chip.data.Repeat
 import de.blaintino.chip.data.RepeatKind
 import de.blaintino.chip.data.RepeatRules
@@ -108,6 +109,7 @@ fun EventEditor(
     var repeatMenu by remember { mutableStateOf(false) }
     var pickUntil by remember { mutableStateOf(false) }
     var askScope by remember { mutableStateOf<EventDraft?>(null) }
+    var reminders by remember { mutableStateOf(draft.reminders) }
     val isSeries = draft.id != null && draft.recurring && draft.originalId == null
 
     val selectedCalendar = calendars.firstOrNull { it.id == calendarId }
@@ -133,6 +135,7 @@ fun EventEditor(
             start = start,
             end = end,
             repeat = if (draft.originalId != null) Repeat.NONE else repeat,
+            reminders = ReminderRules.normalize(reminders),
         )
         if (isSeries) askScope = updated else onSave(updated, null)
     }
@@ -244,6 +247,24 @@ fun EventEditor(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Erinnerungen", style = MaterialTheme.typography.labelLarge)
+                        reminders.forEachIndexed { i, minutes ->
+                            ReminderRow(
+                                minutes = minutes,
+                                onChange = { m -> reminders = reminders.toMutableList().also { it[i] = m } },
+                                onRemove = { reminders = reminders.filterIndexed { j, _ -> j != i } },
+                            )
+                        }
+                        // Bis zu drei (Wunsch des Nutzers); aus Google mitgebrachte weitere bleiben sichtbar.
+                        if (reminders.size < ReminderRules.MAX) {
+                            TextButton(onClick = {
+                                val next = (ReminderRules.FACTORY + ReminderRules.OPTIONS).firstOrNull { it !in reminders } ?: 0
+                                reminders = reminders + next
+                            }) { Text("+ Erinnerung") }
                         }
                     }
 
@@ -387,6 +408,26 @@ fun EventEditor(
                 dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Abbrechen") } },
             )
         }
+    }
+}
+
+/** Eine Erinnerung: Zeitpunkt wählen oder entfernen. */
+@Composable
+fun ReminderRow(minutes: Int?, onChange: (Int) -> Unit, onRemove: (() -> Unit)?, emptyLabel: String = "– keine –") {
+    var open by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) {
+            OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(minutes?.let { ReminderRules.label(it) } ?: emptyLabel, modifier = Modifier.weight(1f))
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                val options = (ReminderRules.OPTIONS + listOfNotNull(minutes)).distinct().sortedDescending()
+                options.forEach { m ->
+                    DropdownMenuItem(text = { Text(ReminderRules.label(m)) }, onClick = { onChange(m); open = false })
+                }
+            }
+        }
+        if (onRemove != null) TextButton(onClick = onRemove) { Text("✕") }
     }
 }
 

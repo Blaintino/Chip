@@ -63,6 +63,8 @@ data class EventDraft(
     val instanceStart: Long? = null,
     /** Beginn des ersten Termins der Serie (wie [start] umgerechnet). */
     val seriesStart: Long? = null,
+    /** Erinnerungen in Minuten vor Beginn (Benachrichtigung), früheste zuerst. */
+    val reminders: List<Int> = emptyList(),
 )
 
 /** Welche Termine einer Serie eine Änderung oder das Löschen betrifft. */
@@ -217,6 +219,7 @@ class CalendarRepository(context: Context) {
                 rrule = rrule,
                 originalId = if (c.isNull(9)) null else c.getLong(9).takeIf { it > 0 },
                 instanceBegin = if (c.isNull(10)) null else c.getLong(10),
+                reminders = reminders(id),
             )
         }
         return null
@@ -240,7 +243,7 @@ class CalendarRepository(context: Context) {
      */
     fun save(draft: EventDraft): Long {
         val rrule = if (draft.originalId != null) null else ruleFor(draft, draft.start)
-        return write(draft.id, draft, rrule)
+        return write(draft.id, draft, rrule).also { if (it > 0) writeReminders(it, draft.reminders) }
     }
 
     /** Änderung an einem Vorkommen einer Serie. */
@@ -258,14 +261,17 @@ class CalendarRepository(context: Context) {
                     put(CalendarContract.Events.STATUS, CalendarContract.Events.STATUS_CONFIRMED)
                 }
                 resolver.insert(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_EXCEPTION_URI, masterId), values)
+                    ?.let { writeReminders(ContentUris.parseId(it), draft.reminders) }
             }
             SeriesScope.FOLLOWING -> {
                 if (instanceBegin <= master.dtStart) {
                     write(masterId, draft, ruleFor(draft, draft.start) ?: if (draft.repeat.kind == RepeatKind.CUSTOM) master.rrule else null)
+                    writeReminders(masterId, draft.reminders)
                 } else {
                     endSeriesBefore(masterId, master, instanceBegin)
                     val rule = ruleFor(draft, draft.start) ?: if (draft.repeat.kind == RepeatKind.CUSTOM) master.rrule else null
-                    write(null, draft.copy(id = null), rule)
+                    val newId = write(null, draft.copy(id = null), rule)
+                    if (newId > 0) writeReminders(newId, draft.reminders)
                 }
             }
             SeriesScope.ALL -> {
@@ -290,6 +296,7 @@ class CalendarRepository(context: Context) {
                     else -> ruleFor(moved, moved.start)
                 }
                 write(masterId, moved, rule)
+                writeReminders(masterId, draft.reminders)
             }
         }
     }
@@ -333,6 +340,39 @@ class CalendarRepository(context: Context) {
 
     fun delete(eventId: Long) {
         resolver.delete(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId), null, null)
+    }
+
+    /** Benachrichtigungs-Erinnerungen eines Termins (E-Mail-Erinnerungen aus Google bleiben unberührt). */
+    private fun reminders(eventId: Long): List<Int> {
+        val result = mutableListOf<Int>()
+        resolver.query(
+            CalendarContract.Reminders.CONTENT_URI,
+            arrayOf(CalendarContract.Reminders.MINUTES),
+            "${CalendarContract.Reminders.EVENT_ID} = ? AND ${CalendarContract.Reminders.METHOD} IN (?, ?)",
+            arrayOf(eventId.toString(), CalendarContract.Reminders.METHOD_ALERT.toString(), CalendarContract.Reminders.METHOD_DEFAULT.toString()),
+            null,
+        )?.use { c -> while (c.moveToNext()) result += c.getInt(0) }
+        // -1 = „Standard des Kontos“ ohne Zeit; zählt hier nicht.
+        return ReminderRules.normalize(result)
+    }
+
+    /** Ersetzt die Benachrichtigungs-Erinnerungen eines Termins. */
+    private fun writeReminders(eventId: Long, minutes: List<Int>) {
+        resolver.delete(
+            CalendarContract.Reminders.CONTENT_URI,
+            "${CalendarContract.Reminders.EVENT_ID} = ? AND ${CalendarContract.Reminders.METHOD} IN (?, ?)",
+            arrayOf(eventId.toString(), CalendarContract.Reminders.METHOD_ALERT.toString(), CalendarContract.Reminders.METHOD_DEFAULT.toString()),
+        )
+        for (m in ReminderRules.normalize(minutes)) {
+            resolver.insert(
+                CalendarContract.Reminders.CONTENT_URI,
+                ContentValues().apply {
+                    put(CalendarContract.Reminders.EVENT_ID, eventId)
+                    put(CalendarContract.Reminders.MINUTES, m)
+                    put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
+                },
+            )
+        }
     }
 
     private data class MasterRow(val dtStart: Long, val rrule: String?, val allDay: Boolean)
