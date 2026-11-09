@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Termin-Erinnerungen anzeigen. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- FH Stempelkarte (eigene App, gleicher Schlüssel): Status lesen und stempeln für den
          Stempel-Knopf im Widget. signature-Berechtigung, Debug-Chip bekommt sie nicht. -->
@@ -67,6 +69,18 @@
             android:permission="de.fhstempelkarte.permission.INTEROP">
             <intent-filter>
                 <action android:name="de.fhstempelkarte.action.ZUSTAND_GEAENDERT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Termin-Erinnerungen: der Kalender-Provider von Android meldet fällige Erinnerungen. -->
+        <receiver
+            android:name=".reminder.EventReminderReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.EVENT_REMINDER" />
+                <data
+                    android:host="com.android.calendar"
+                    android:scheme="content" />
             </intent-filter>
         </receiver>
 

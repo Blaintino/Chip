@@ -3,6 +3,7 @@ package de.blaintino.chip
 import android.Manifest
 import android.content.Intent
 import android.database.ContentObserver
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -76,6 +77,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.blaintino.chip.data.CalendarInfo
 import de.blaintino.chip.data.CalendarRepository
+import de.blaintino.chip.data.DefaultReminders
+import de.blaintino.chip.reminder.EventAlerts
 import de.blaintino.chip.data.EventDraft
 import de.blaintino.chip.data.EventInstance
 import de.blaintino.chip.data.HiddenCalendars
@@ -109,12 +112,16 @@ class MainActivity : ComponentActivity() {
     /** Kalender eines Widget-Plus-Knopfs: öffnet sofort „Neuer Termin“ in diesem Kalender. */
     private var pendingNewEvent by mutableStateOf<Long?>(null)
 
+    /** Tag einer angetippten Termin-Erinnerung. */
+    private var pendingDay by mutableStateOf<LocalDate?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         if (savedInstanceState == null) {
             pendingWebcal = webcalFrom(intent)
             pendingNewEvent = NewEventIntents.calendarIdFrom(intent)
+            pendingDay = EventAlerts.dayFrom(intent)
         }
         Background.schedule(this)
         // Widget bei jedem Start neu zeichnen (falls es nach einem Update hängen geblieben ist).
@@ -126,6 +133,8 @@ class MainActivity : ComponentActivity() {
                     onWebcalHandled = { pendingWebcal = null },
                     pendingNewEvent = pendingNewEvent,
                     onNewEventHandled = { pendingNewEvent = null },
+                    pendingDay = pendingDay,
+                    onDayHandled = { pendingDay = null },
                 )
             }
         }
@@ -135,6 +144,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         webcalFrom(intent)?.let { pendingWebcal = it }
         NewEventIntents.calendarIdFrom(intent)?.let { pendingNewEvent = it }
+        EventAlerts.dayFrom(intent)?.let { pendingDay = it }
     }
 
     private fun webcalFrom(intent: Intent?): String? =
@@ -150,6 +160,8 @@ private fun ChipApp(
     onWebcalHandled: () -> Unit,
     pendingNewEvent: Long?,
     onNewEventHandled: () -> Unit,
+    pendingDay: LocalDate?,
+    onDayHandled: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -164,6 +176,17 @@ private fun ChipApp(
     }
     val permissions = arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
     LaunchedEffect(Unit) { if (!granted) permissionLauncher.launch(permissions) }
+    // Benachrichtigungen für Termin-Erinnerungen: einmal nachfragen, danach nur über die Einstellungen.
+    val notifyLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(granted) {
+        if (granted && Build.VERSION.SDK_INT >= 33 && !EventAlerts.canNotify(context)) {
+            val prefs = context.getSharedPreferences("chip", android.content.Context.MODE_PRIVATE)
+            if (!prefs.getBoolean("asked_notifications", false)) {
+                prefs.edit().putBoolean("asked_notifications", true).commit()
+                notifyLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 
     if (!granted) {
         Column(
@@ -259,6 +282,8 @@ private fun ChipApp(
             allDay = false,
             start = start.atZone(zone).toInstant().toEpochMilli(),
             end = start.plusHours(1).atZone(zone).toInstant().toEpochMilli(),
+            // Vorgaben aus den Einstellungen (Wunsch des Nutzers), im Editor änderbar.
+            reminders = DefaultReminders.get(context),
         )
     }
 
@@ -364,6 +389,13 @@ private fun ChipApp(
     }
 
     // Widget-Plus: sobald die Kalender geladen sind, „Neuer Termin“ im gewählten Kalender öffnen.
+    LaunchedEffect(pendingDay) {
+        pendingDay?.let {
+            selectedDay = it
+            showSettings = false
+            onDayHandled()
+        }
+    }
     LaunchedEffect(pendingNewEvent, calendars) {
         val id = pendingNewEvent ?: return@LaunchedEffect
         if (calendars.isEmpty()) return@LaunchedEffect

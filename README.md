@@ -31,6 +31,9 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   oder letzten Wochentag des Monats, optional mit Enddatum. Beim Ändern oder Löschen eines
   Serientermins: nur dieser Termin, dieser und alle folgenden oder die ganze Serie. Regeln, die
   Chip nicht selbst abbildet (z. B. aus Google), bleiben unverändert erhalten.
+- **Erinnerungen**: bis zu drei je Termin (Benachrichtigung). Neue Termine übernehmen die Vorgaben aus ⚙
+  (ab Werk 1 Tag, 1 Stunde und 15 Minuten vorher). Gespeichert in Android (synchronisiert mit Google), angezeigt
+  von Chip, sobald Android die Erinnerung meldet.
 - **ICS-Abos** (⚙): Web-Adresse (`https://` oder `webcal://`) eintragen, Name und Farbe
   wählen. Jedes Abo wird ein eigener, nur lesbarer Kalender auf dem Handy (nicht bei Google) und wird
   **täglich** aktualisiert, außerdem beim Öffnen der App, wenn das letzte Laden über einen Tag her
@@ -61,6 +64,8 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 | `MainActivity.kt` | Einstieg, Berechtigung, Tabs, Editor/Details öffnen |
 | `data/CalendarRepository.kt` | Lesen/Schreiben in `CalendarContract` (Kalender, Vorkommen, Termine) |
 | `data/Repeat.kt` | Wiederholungen ↔ RRULE (`RepeatRules`, Tests `RepeatTest`) |
+| `data/Reminders.kt` | Erinnerungs-Vorgaben (`ReminderRules`, `DefaultReminders`, Tests `ReminderRulesTest`) |
+| `reminder/EventAlerts.kt` | Benachrichtigung bei `EVENT_REMINDER` (`EventReminderReceiver`) |
 | `data/Prefs.kt` | Ausgeblendete Kalender, Abo-Liste (SharedPreferences, `commit()`) |
 | `data/Formats.kt` | Deutsche Datums-/Zeitformate |
 | `ics/IcsParser.kt` | ICS-Datei lesen (Zeilen falten, Eigenschaften, VEVENTs) |

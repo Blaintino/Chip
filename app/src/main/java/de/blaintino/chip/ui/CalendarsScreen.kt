@@ -51,7 +51,10 @@ import de.blaintino.chip.data.CalendarColors
 import de.blaintino.chip.data.CalendarInfo
 import de.blaintino.chip.data.CalendarRepository
 import de.blaintino.chip.data.Formats
+import de.blaintino.chip.data.DefaultReminders
 import de.blaintino.chip.data.QuickAddCalendars
+import de.blaintino.chip.data.ReminderRules
+import de.blaintino.chip.reminder.EventAlerts
 import de.blaintino.chip.data.Subscription
 import de.blaintino.chip.data.SubscriptionStore
 import de.blaintino.chip.stempel.StempelVisibility
@@ -203,6 +206,9 @@ fun CalendarsScreen(
                 }
             }
         }
+
+        item { SectionLabel("Erinnerungen") }
+        item { ReminderSettings(localVersion) }
 
         item { SectionLabel("Wetter im Widget") }
         item {
@@ -467,6 +473,59 @@ fun ColorPicker(selected: Int, onPick: (Int) -> Unit) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Vorgaben für neue Termine (Wunsch des Nutzers: bis zu drei, ab Werk 1 Tag / 1 Std. / 15 Min. vorher)
+ * und Stand der Benachrichtigungen.
+ */
+@Composable
+private fun ReminderSettings(refresh: Int) {
+    val context = LocalContext.current
+    var defaults by remember { mutableStateOf(DefaultReminders.get(context)) }
+    val allowed = remember(refresh) { EventAlerts.canNotify(context) }
+    val last = remember(refresh) { EventAlerts.last(context) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "Jeder neue Termin bekommt diese Erinnerungen; im Termin selbst änderbar oder löschbar.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        repeat(ReminderRules.MAX) { slot ->
+            val current = defaults.getOrNull(slot)
+            ReminderRow(
+                minutes = current,
+                onChange = { m ->
+                    val list = defaults.toMutableList()
+                    if (slot < list.size) list[slot] = m else list += m
+                    DefaultReminders.set(context, list)
+                    defaults = DefaultReminders.get(context)
+                },
+                onRemove = current?.let {
+                    {
+                        DefaultReminders.set(context, defaults.filterIndexed { i, _ -> i != slot })
+                        defaults = DefaultReminders.get(context)
+                    }
+                },
+            )
+        }
+        Text(
+            (if (allowed) "Benachrichtigungen erlaubt." else "Benachrichtigungen sind für Chip aus – Erinnerungen erscheinen nicht.") +
+                "\nSolange die Google-Kalender-App (oder Samsung Kalender) Benachrichtigungen zeigt, kommen Erinnerungen doppelt." +
+                "\nLetzte Erinnerung: " + (last ?: "noch keine"),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (allowed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+        )
+        OutlinedButton(
+            onClick = {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { context.startActivity(intent) }
+            },
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) { Text("Benachrichtigungen einstellen") }
     }
 }
 

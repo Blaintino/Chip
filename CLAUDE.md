@@ -85,6 +85,18 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
     gebaut, wenn sich Art/Ende oder der Tag geändert hat. Eine andere Wiederholungsart geht nur „ab hier“
     (sonst passte z. B. „monatlich am 9.“ nicht zum ersten Termin).
   Noch nicht auf dem Gerät geprüft, vor allem wie Google-Sync die Ausnahmen übernimmt.
+- **Erinnerungen** (Wunsch des Nutzers, 2026-11-09: Chip soll den Google Kalender ersetzen): bis zu 3 je Termin
+  (`ReminderRules.MAX`), `EventDraft.reminders` (Minuten vorher). Gespeichert in `CalendarContract.Reminders`
+  (`METHOD_ALERT`; nur ALERT/DEFAULT werden ersetzt, E-Mail-Erinnerungen aus Google bleiben), bei allen
+  Speicherwegen inkl. Ausnahme-Zeilen und neuer Serie „ab hier“. Neue Termine übernehmen `DefaultReminders`
+  (Einstellungen, ab Werk 1 Tag / 1 Std. / 15 Min.); bestehende Termine behalten ihre eigenen, Abo-Termine haben keine.
+  Anzeigen: Der Kalender-Provider plant die Zeitpunkte selbst und sendet `EVENT_REMINDER` (Ausnahme von der
+  Sperre für implizite Broadcasts); `EventReminderReceiver` → `EventAlerts.showDue` liest `CalendarAlerts`
+  (Alarmzeit bis 30 min zurück), zeigt je eine Benachrichtigung (Kanal `termine`, hoch), merkt sich gezeigte
+  (Schlüssel Termin:Beginn:Alarmzeit, 2 Tage) und setzt `STATE_FIRED`. Tippen öffnet Chip am Tag des Termins
+  (`EXTRA_DAY`). `POST_NOTIFICATIONS` wird einmal beim Start erfragt; Status und letzte Erinnerung in den
+  Einstellungen. Doppelte Meldungen, solange Google Kalender / Samsung Kalender selbst benachrichtigen.
+  Noch nicht auf dem Gerät geprüft.
 - Ganztägige Termine: in `Events` Mitternacht UTC und Zeitzone `UTC`, `DTEND` exklusiv. Der Editor
   zeigt den letzten Tag; Umrechnung in `CalendarRepository.event/save`. Tage von Vorkommen aus
   `Instances.START_DAY/END_DAY` (julianisch), nicht aus `BEGIN/END`.
@@ -184,5 +196,5 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 ## Mögliche nächste Schritte (nur auf Nachfrage)
 
 - Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
-- Erinnerungen setzen, Teilnehmer einladen.
+- Teilnehmer einladen; „Später erinnern“ an der Benachrichtigung.
 - Eigenes App-Icon.
