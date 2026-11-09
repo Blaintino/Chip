@@ -222,9 +222,10 @@ private fun ChipApp(
 
     fun openEvent(ev: EventInstance) {
         scope.launch {
-            val draft = withContext(Dispatchers.IO) { repo.event(ev.eventId) }
+            val draft = withContext(Dispatchers.IO) { repo.eventForInstance(ev) }
             val cal = calendars.firstOrNull { it.id == ev.calendarId }
-            if (draft != null && cal != null && cal.writable && !draft.recurring) editing = draft else details = ev
+            // Serien sind jetzt auch bearbeitbar (Wunsch des Nutzers); nur lesbare Kalender zeigen Details.
+            if (draft != null && cal != null && cal.writable) editing = draft else details = ev
         }
     }
 
@@ -573,19 +574,21 @@ private fun ChipApp(
             draft = draft,
             calendars = editorCalendars(draft.calendarId),
             onDismiss = { editing = null },
-            onSave = { updated ->
+            onSave = { updated, seriesScope ->
                 editing = null
                 scope.launch {
-                    withContext(Dispatchers.IO) { repo.save(updated) }
+                    withContext(Dispatchers.IO) {
+                        if (seriesScope != null) repo.saveSeries(updated, seriesScope) else repo.save(updated)
+                    }
                     version++
                     TodayWidget.refresh(context)
                 }
             },
-            onDelete = draft.id?.let { id ->
-                {
+            onDelete = draft.id?.let {
+                { seriesScope ->
                     editing = null
                     scope.launch {
-                        withContext(Dispatchers.IO) { repo.delete(id) }
+                        withContext(Dispatchers.IO) { repo.deleteEvent(draft, seriesScope) }
                         version++
                         TodayWidget.refresh(context)
                     }

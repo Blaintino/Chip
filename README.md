@@ -24,10 +24,13 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   deren Farbe), änderbar unter ⚙ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
   heute zur nächsten vollen Stunde.
 - **Heute**: Knopf neben dem Titel (Tag/Woche/Monat/Jahr) springt in der aktuellen Ansicht zu heute.
-- **Bearbeiten**: Einzeltermine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
+- **Bearbeiten**: Termine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
   Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter ⚙
-  eingeschaltet sind. Serientermine und nur lesbare Kalender zeigt Chip an und öffnet sie zum
-  Bearbeiten in der Kalender-App des Kontos.
+  eingeschaltet sind. Nur lesbare Kalender zeigt Chip an und öffnet sie in der Kalender-App des Kontos.
+- **Serien**: Wiederholen täglich, wöchentlich, alle 2 Wochen, monatlich am gleichen Datum, am n-ten
+  oder letzten Wochentag des Monats, optional mit Enddatum. Beim Ändern oder Löschen eines
+  Serientermins: nur dieser Termin, dieser und alle folgenden oder die ganze Serie. Regeln, die
+  Chip nicht selbst abbildet (z. B. aus Google), bleiben unverändert erhalten.
 - **ICS-Abos** (⚙): Web-Adresse (`https://` oder `webcal://`) eintragen, Name und Farbe
   wählen. Jedes Abo wird ein eigener, nur lesbarer Kalender auf dem Handy (nicht bei Google) und wird
   **täglich** aktualisiert, außerdem beim Öffnen der App, wenn das letzte Laden über einen Tag her
@@ -57,6 +60,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 |---|---|
 | `MainActivity.kt` | Einstieg, Berechtigung, Tabs, Editor/Details öffnen |
 | `data/CalendarRepository.kt` | Lesen/Schreiben in `CalendarContract` (Kalender, Vorkommen, Termine) |
+| `data/Repeat.kt` | Wiederholungen ↔ RRULE (`RepeatRules`, Tests `RepeatTest`) |
 | `data/Prefs.kt` | Ausgeblendete Kalender, Abo-Liste (SharedPreferences, `commit()`) |
 | `data/Formats.kt` | Deutsche Datums-/Zeitformate |
 | `ics/IcsParser.kt` | ICS-Datei lesen (Zeilen falten, Eigenschaften, VEVENTs) |

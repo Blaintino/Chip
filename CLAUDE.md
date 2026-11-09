@@ -68,9 +68,23 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   `dayCount = 1`. Alle Stufen folgen `selectedDay` (auch die Monatsnavigation), damit Zoomen beim
   selben Datum bleibt. Tippen auf eine freie Stelle im
   Raster legt dort einen Termin an.
-- Bearbeiten nur für Einzeltermine in beschreibbaren Kalendern (`CAL_ACCESS_CONTRIBUTOR`+).
-  Serien (RRULE/RDATE) bewusst nur lesend mit Sprung in die Kalender-App (`EventDetails`) – das
-  Ändern einzelner Serientermine braucht Ausnahme-Zeilen und ist ein eigener Schritt.
+- Bearbeiten nur in beschreibbaren Kalendern (`CAL_ACCESS_CONTRIBUTOR`+), sonst `EventDetails` mit Sprung
+  in die Kalender-App.
+- **Serien** (Wunsch des Nutzers, 2026-11-09): Editor „Wiederholen“ mit `RepeatKind` (täglich, wöchentlich,
+  alle 2 Wochen, monatlich am Datum / am n-ten (1–4) / am letzten Wochentag) und „Endet“ (UNTIL; ganztägig als
+  Datum, sonst Tagesende in UTC). Umsetzung in `RepeatRules` (`data/Repeat.kt`, Tests `RepeatTest`); alles, was
+  nicht genau passt (COUNT, mehrere Wochentage, YEARLY, RDATE …), ist `CUSTOM` und bleibt roh erhalten.
+  Serien in `Events` mit `RRULE` + `DURATION`, `DTEND` null. Der Editor zeigt das angetippte Vorkommen
+  (`eventForInstance`); Speichern/Löschen fragt den Umfang (`SeriesScope`):
+  - **Nur dieser**: Ausnahme-Zeile über `Events.CONTENT_EXCEPTION_URI` mit `ORIGINAL_INSTANCE_TIME`
+    (= `Instances.BEGIN`), Löschen = Ausnahme mit `STATUS_CANCELED`. Einzeln geänderte Termine
+    (`ORIGINAL_ID`) werden direkt geändert bzw. abgesagt, haben keine eigene Wiederholung.
+  - **Dieser und folgende**: alte Serie bekommt UNTIL vor dem Vorkommen (`RepeatRules.endBefore`, COUNT
+    fällt weg), spätere Ausnahme-Zeilen werden gelöscht, ab hier eine neue Serie. Beim ersten Termin = ganze Serie.
+  - **Alle**: Verschiebung des Vorkommens (Wanduhrzeit) wird auf den ersten Termin übertragen; Regel nur neu
+    gebaut, wenn sich Art/Ende oder der Tag geändert hat. Eine andere Wiederholungsart geht nur „ab hier“
+    (sonst passte z. B. „monatlich am 9.“ nicht zum ersten Termin).
+  Noch nicht auf dem Gerät geprüft, vor allem wie Google-Sync die Ausnahmen übernimmt.
 - Ganztägige Termine: in `Events` Mitternacht UTC und Zeitzone `UTC`, `DTEND` exklusiv. Der Editor
   zeigt den letzten Tag; Umrechnung in `CalendarRepository.event/save`. Tage von Vorkommen aus
   `Instances.START_DAY/END_DAY` (julianisch), nicht aus `BEGIN/END`.
@@ -170,5 +184,5 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 ## Mögliche nächste Schritte (nur auf Nachfrage)
 
 - Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
-- Serien bearbeiten, Erinnerungen setzen, Teilnehmer einladen.
+- Erinnerungen setzen, Teilnehmer einladen.
 - Eigenes App-Icon.
