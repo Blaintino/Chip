@@ -39,12 +39,12 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   **täglich** aktualisiert, außerdem beim Öffnen der App, wenn das letzte Laden über einen Tag her
   ist, und von Hand. `webcal://`-Links aus dem Browser öffnen direkt den Abo-Dialog.
 - **Mehrtägige Termine** erscheinen verbunden: in Woche/Tag als durchgehender Balken oben, im Monat als
-  Balken über die Tage, im Jahr als Linie unter den Tagen.
+  Balken direkt unter der Tageszahl, im Jahr als durchgehend eingefärbte Tage.
 - **Kalender ein-/ausblenden (auch nur für Monat/Jahr) und Farbe ändern** (⚙, Farbpunkt antippen): nur für Chip (App, Widget,
   Plus-Knöpfe), ändert nichts am Konto. Termine mit eigener Terminfarbe behalten diese.
 - **Wetter im Widget** (⚙ → „Wetter im Widget“, Ort per Namenssuche, keine Standort-Berechtigung):
   aktuelle Temperatur, Höchst-/Tiefstwert von heute und Regenhinweis (ab 40 % für den Rest des Tages, z. B. „☂ ab 15 Uhr
-  (70 %)“), stündlich aktualisiert. Daten: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
+  (70 %)“, als zweite, hellblaue Zeile), stündlich aktualisiert. Daten: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
 - **Stempel-Knopf im Widget** (mit der eigenen App [FH Stempelkarte](https://github.com/Blaintino/FH-Stempelkarte),
   Release-Builds beider Apps): rechts neben der Wetter-Pille ein rundes Einloggen-Symbol (rot, wenn die Stempelkarte erinnert);
   eingeloggt grün mit der heutigen Arbeitszeit (über mehrmaliges Ein-/Ausloggen aufsummiert, netto: ab 6 h 30 min
@@ -61,7 +61,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 
 | Datei | Inhalt |
 |---|---|
-| `MainActivity.kt` | Einstieg, Berechtigung, Tabs, Editor/Details öffnen |
+| `MainActivity.kt` | Einstieg, Berechtigungen, Kopfzeile, Ansichten mit Gesten, Editor/Details öffnen |
 | `data/CalendarRepository.kt` | Lesen/Schreiben in `CalendarContract` (Kalender, Vorkommen, Termine) |
 | `data/Repeat.kt` | Wiederholungen ↔ RRULE (`RepeatRules`, Tests `RepeatTest`) |
 | `data/Reminders.kt` | Erinnerungs-Vorgaben (`ReminderRules`, `DefaultReminders`, Tests `ReminderRulesTest`) |
@@ -78,6 +78,11 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 | `ui/…` | Compose-Bildschirme: Tag/Woche, Monat, Jahr, Einstellungen (`CalendarsScreen`), Editor |
 | `ui/Zoom.kt` | Detailstufen Tag/Woche/Monat/Jahr und Pinch-Geste (Tests `CalendarZoomTest`) |
 | `ui/DayLayout.kt` | Spalten für sich überschneidende Termine in der Wochenansicht (Tests `DayLayoutTest`) |
+
+## Doku für Entwickler
+
+`CLAUDE.md` (Aufbau, Ablauf, feste Entscheidungen, Übergabe-Notizen), `TODO.md` (offene Punkte),
+`docs/mockups/` (Gesten-Mockup, auch als Artefakt https://claude.ai/artifact/5KxJ5e7qXsKwaBnQuxLv49).
 
 ## Bauen
 
@@ -116,5 +121,7 @@ gh secret set ANDROID_KEY_PASSWORD --repo Blaintino/Chip
 
 ## Rechte
 
-`READ_CALENDAR`/`WRITE_CALENDAR` (Kalender), `INTERNET`/`ACCESS_NETWORK_STATE` (nur zum Laden der Abos).
+`READ_CALENDAR`/`WRITE_CALENDAR` (Kalender), `INTERNET`/`ACCESS_NETWORK_STATE` (Abos und Wetter),
+`POST_NOTIFICATIONS` (Erinnerungen), `RECEIVE_BOOT_COMPLETED`, `de.fhstempelkarte.permission.INTEROP` (Stempel-Knopf).
+Keine Standort-Berechtigung.
 Keine Konten, keine Tracker, keine Google-Dienste in der App selbst.

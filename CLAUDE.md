@@ -1,7 +1,98 @@
 # Chip – Hinweise für Claude Code
 
 Eigene Kalender-App für Android (Kotlin, Jetpack Compose, minSdk 26, targetSdk 37), privater
-Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commits und Doku auf Deutsch.
+Gebrauch. Funktionen für Nutzer: `README.md`. Oberfläche, Texte, Commits und Doku auf Deutsch.
+Offene Punkte: `TODO.md`. Aktueller Stand und offene Fragen: Abschnitt **Übergabe-Notizen** am Ende.
+
+## Überblick
+
+- **App-ID** `de.blaintino.chip` (Debug-Build `de.blaintino.chip.debug`, Name „Chip (Debug)“, läuft daneben).
+- **Repo** `Blaintino/Chip` (GitHub meldet beim Push „repository moved“ auf die Schreibweise
+  `Blaintino/Chip.git` – harmlos), Lizenz GPL-3.0.
+- **Release**: GitHub Release `v<run_number>` mit `Chip-<run_number>.apk`, nur aus `main` und nur signiert.
+  Kein App-Präfix im Tag, weil eigenes Repo.
+- **Installation** beim Nutzer (Samsung Galaxy S26 Ultra): Obtainium mit der Repo-URL, **ohne Filter**.
+  Cloud-Sessions haben weder Emulator noch Handy – geprüft wird nur im CI, auf dem Gerät prüft der Nutzer.
+- **Signatur**: gleicher Keystore wie Quälgeist und FH Stempelkarte (wichtig für die `signature`-Berechtigung der
+  Stempelkarte). Secrets im Repo: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`
+  (`release`), `ANDROID_KEY_PASSWORD`. Werte stehen nirgends im Repo, der Nutzer setzt sie vom Mac per `gh secret set`
+  (Befehle im README).
+- **Verwandte eigene Apps**:
+  - Quälgeist (`Blaintino/Quaelgeist`, `de.quaelgeist`, Beta `de.quaelgeist.beta`): exportiert seit v49
+    (`Blaintino/Quaelgeist` PR #18) die Aktion `de.quaelgeist.action.QUICK_ADD`, die der Widget-Knopf „+ Quälgeist“ nutzt.
+  - FH Stempelkarte (`Blaintino/FH-Stempelkarte`, `de.fhstempelkarte`): Schnittstelle in deren `INTEROP.md`.
+  - `Blaintino/Calendar-fork`: früherer Versuch als Fork von Fossify Calendar (App-ID `de.calendarfork`, PR #1 nie
+    gemergt). Aufgegeben zugunsten von Chip (Wunsch des Nutzers: mehr Kontrolle über Widget und Layouts; Fossify
+    hängt an seiner Commons-Bibliothek mit „Fake-Version“-Prüfung für fremde App-IDs). Nicht weiterverfolgen.
+
+## Code-Aufbau (`app/src/main/java/de/blaintino/chip/`)
+
+| Paket/Datei | Inhalt |
+|---|---|
+| `MainActivity.kt` | Einstieg, Berechtigungen, Kopfzeile, Seiten-Schleife mit Gesten, Editor/Details, Intents (webcal, Widget-Plus, Erinnerung) |
+| `QuaelgeistActivity.kt` | Sprungbrett für „+ Quälgeist“ aus dem Widget |
+| `data/` | `CalendarRepository` (alles CalendarContract), `Repeat` (RRULE), `Reminders` (Vorgaben), `Prefs` (SharedPreferences), `Formats` |
+| `ics/` | ICS lesen (`IcsParser`) und in Termin-Zeilen umsetzen (`IcsMapper`) |
+| `sync/` | `SubscriptionSync` (Abos), `Background` (alle WorkManager-Jobs), `UpdateReceiver` |
+| `reminder/` | `EventAlerts` + `EventReminderReceiver` (Benachrichtigungen) |
+| `weather/` | Open-Meteo, Zwischenspeicher, `WeatherText` |
+| `widget/` | Glance-Widget „Heute“, `WidgetCache`, `WidgetFilter` |
+| `stempel/` | FH Stempelkarte: Status, Sichtbarkeit, Sprungbrett, Empfänger |
+| `ui/` | Woche/Tag (`WeekScreen`), `MonthScreen`, `YearScreen`, Einstellungen (`CalendarsScreen`), `EventEditor`, Gesten (`Zoom`), Layout-Helfer (`DayLayout`, `SpanLayout`) |
+
+Reine Logik liegt bewusst in eigenen Objekten ohne Android-Abhängigkeit und hat JVM-Tests in `app/src/test/`
+(`RepeatTest`, `ReminderRulesTest`, `IcsTest`, `DayLayoutTest`, `SpanLayoutTest`, `CalendarZoomTest`,
+`WidgetFilterTest`, `WeatherTextTest`, `StempelStatusTest`, `StempelVisibilityTest`; Zeitzone fest `Europe/Berlin`).
+Neue Logik genauso aufteilen.
+
+## Ablauf Branch → PR → Merge → Release
+
+1. Auf dem Arbeitsbranch arbeiten (bisher `claude/vigilant-lamport-2afb5d`, andere Sessions nutzten
+   `claude/<thema>`). Vor jedem neuen Zyklus auf `main` zurücksetzen:
+   `git fetch origin main && git checkout -B <branch> origin/main`, dann `git push -f -u origin <branch>`.
+2. Push startet im CI einen Test-Build (Tests + Lint + APK als Artefakt, kein Release). Lokal bauen scheitert in
+   Cloud-Sessions meist an Maven Central (HTTP 429) – dann ist das CI die einzige Prüfung, also Importe und
+   Opt-ins sorgfältig prüfen. Stand abfragen:
+   `curl -s "https://api.github.com/repos/Blaintino/Chip/actions/runs?head_sha=<sha>"`.
+3. Erst wenn der Nutzer „Release“ sagt: PR nach `main` anlegen und mergen (Merge-Commit). Der Lauf auf `main`
+   erstellt das Release `v<run_number>`; dem Nutzer die Nummer nennen.
+4. Reine Doku-Commits mit `[skip ci]`, damit kein Build läuft.
+5. Commit-Nachrichten deutsch. Keine Modellnamen in Commits/PRs.
+
+## Feste Entscheidungen des Nutzers (nicht ohne Rückfrage ändern)
+
+- Release nur auf Ansage; Kleinigkeiten ohne eigenen Build sammeln (`TODO.md`).
+- Datenquelle nur `CalendarContract`, Teilen über Google. ICS-Abos mit täglicher Aktualisierung sind Pflicht.
+- Wetter: Ort nur per Namenssuche, **keine Standort-Berechtigung**; **kein Wettersymbol**; Schrift 16 sp; Regen als
+  zweite, hellblaue Zeile; Antippen öffnet Chip.
+- Oberfläche ohne Tabs, Startansicht Woche mit 8–18 Uhr sichtbar, „Heute“ mittig, ⚙ rechts.
+- Plus-Knöpfe: zwei Kalender („Langners“, „Arbeit“), nebeneinander, „+ “ und drei Buchstaben, neuer Termin heute
+  zur nächsten vollen Stunde.
+- Editor: nur beschreibbare und eingeschaltete Kalender.
+- Kalenderfarben und Ausblenden nur in Chip, nie am Konto.
+- Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
+  „+ Quälgeist“ in der Material-You-Hauptfarbe, Stempel-Knopf nur im Kontext.
+- Mehrtägige Termine: Monat dünne Balken direkt unter der Zahl, Jahr Tage voll eingefärbt.
+- Erinnerungen: höchstens 3 je Termin; Vorgaben in den Einstellungen (ab Werk 1 Tag / 1 Std. / 15 Min.) gelten für
+  jeden **neuen** Termin und werden nur im Termin selbst geändert oder gelöscht.
+- Ziel des Nutzers: Chip soll den Google Kalender auf dem Handy ersetzen (dann wird die Google-App gelöscht).
+
+## Gelernte Fallen
+
+- `BoxWithConstraints`-Inhalt läuft erst beim Layout: keine Schleifenvariablen darin lesen (Fehler in v53).
+- Glance: Daten in der Komposition laden; vor App-Updates platzierte Widgets brauchen einen Anstoß
+  (`UpdateReceiver`, App-Start). Flackern durch „noch nicht geladen“ vermeiden (`WidgetCache`).
+- Glance-`Row`: Elemente ohne Gewicht werden zuerst gemessen – ein breiter Text verdrängte den Stempel-Knopf, bis
+  die Pille `defaultWeight` bekam (v78).
+- CI-Fehler, die lokal niemand sah: fehlendes `@OptIn(ExperimentalMaterial3Api::class)`, fehlende Importe,
+  Lint `ByteOrderMark` (BOM als `'\uFEFF'` schreiben, nie als Zeichen).
+- CalendarContract: ganztägig = Mitternacht UTC, `DTEND` exklusiv; Tage aus `START_DAY/END_DAY`; Serien mit
+  `DURATION` statt `DTEND`; Ausnahmen über `CONTENT_EXCEPTION_URI`; `CALENDAR_COLOR` darf nur der Sync-Adapter ändern.
+- Implizite Broadcasts: `EVENT_REMINDER` ist ausgenommen und erreicht den Manifest-Empfänger.
+- Cloud-Session: Klon ist flach und ohne Tracking-Ref – nach dem Checkout `git branch -u origin/<branch>`,
+  sonst meldet der Stop-Hook „unpushed commits“. `docs/cloud/repos.init.gradle` biegt Maven Central auf
+  `repo1.maven.org` um (`./gradlew --init-script docs/cloud/repos.init.gradle …`), hat aber nicht verlässlich geholfen.
+- Mockups als HTML: in JS bei Bit-Schiebereien für Indizes `>>>` statt `>>` (negative Werte).
 
 ## Werkzeuge
 
@@ -16,8 +107,9 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Debug-Signatur „umstellen“. Keystore nie einchecken oder in einer Cloud-Session erzeugen.
 - In Cloud-Sessions drosselt Maven Central oft (HTTP 429), lokal bauen geht dann nicht; der Build
   läuft verlässlich im CI.
-- Zuletzt auf dem Handy bestätigt: v55 (2026-11-02; mehrtägige Termine, Monat/Jahr-Schalter, Monatsfix;
-  davor v51: Wischen/Pinch mit Rückmeldung, Zoom zum Tag unter den Fingern, Wetter-Pille, Heute-Knopf mittig).
+- Zuletzt auf dem Handy bestätigt: v59 (2026-11-02; Monat-Balken unter der Zahl, Jahr voll eingefärbt, Wetter 16 sp;
+  v55: mehrtägige Termine, Monat/Jahr-Schalter, Monatsfix; v51: Wischen/Pinch mit Rückmeldung, Zoom zum Tag unter den
+  Fingern, Wetter-Pille, Heute-Knopf mittig) und v61/v63 (Stempel-Knopf). Neuere Releases siehe Übergabe-Notizen.
 - Auf dem Handy (Samsung S26 Ultra) vom Nutzer bestätigt (v27, 2026-11-02; Widget ohne Kopfzeile nur mit
   anstehenden Terminen, Plus-Knöpfe nebeneinander; davor v21): Kalender, Woche/Tag/
   Monat/Jahr, Pinch, Wischen, Heute-Knopf, Plus-Knöpfe, langes Drücken, Oberfläche ohne Tabs,
@@ -55,7 +147,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   `CalendarZoom` (Tag/Woche/Monat/Jahr, `Zoom.kt`): **Pinch** (zwei Finger aufziehen = feiner,
   zusammenschieben = gröber, eine Stufe je Geste) und **Wischen** mit einem Finger (links = nächster,
   rechts = vorheriger Zeitraum, `CalendarZoom.shift`; Wunsch des Nutzers) laufen zusammen in
-  `calendarGestures` mit **laufender Rückmeldung** (Wunsch des Nutzers, Mockup-Artefakt „Chip Gesten-Mockup“):
+  `calendarGestures` mit **laufender Rückmeldung** (Wunsch des Nutzers, Mockup-Artefakt „Chip Gesten-Mockup“
+  https://claude.ai/artifact/5KxJ5e7qXsKwaBnQuxLv49, Kopie in `docs/mockups/chip-gesten.html` mit Bildern):
   Wischen verschiebt die Ansicht mit dem Finger (`dragX`, Nachbarn links/rechts nur während des Wischens
   gezeichnet), Loslassen nach ¼ Breite oder mit Schwung blättert (`settleSwipe`, 280 ms), sonst zurück;
   Pfeile im Kopf animieren genauso (`select` erkennt Sprünge um genau einen Zeitraum). Pinch skaliert
@@ -124,8 +217,11 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   - WorkManager: täglich mit Netz (`Background.schedule`, auch bei jedem App-Start), beim Öffnen
     nachholen, wenn ein Abo über einen Tag alt ist.
 - **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), Widget durchsichtig mit reinem Schwarz
-  nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe, dann **oben** (Wunsch des Nutzers; mit Terminen unten; kein Hinweistext; ein Widget kann
-  seine Größe nicht selbst ändern), feste helle Schrift (Wunsch des Nutzers),
+  nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe, dann **oben** (Wunsch des Nutzers; kein Hinweistext; ein Widget kann
+  seine Größe nicht selbst ändern). **Nur so hoch wie der Inhalt** (Wunsch des Nutzers, 2026-11-11, v79+): alles
+  steht oben, die schwarze Fläche endet nach dem letzten Termin, die Knöpfe folgen direkt darunter; reicht der Platz
+  nicht, scrollt die Liste. Technik: Spalte ohne feste Höhe, Terminfläche mit `defaultWeight` (Höhe 0) – LinearLayout
+  misst sie zuerst in Inhaltsgröße und kürzt nur bei Platzmangel (bei `targetSdk` > 23). feste helle Schrift (Wunsch des Nutzers),
   scrollbare Liste mit Uhrzeit, Titel, Ort; **nur laufende und kommende Termine** (Wunsch des Nutzers,
   `WidgetFilter`, Tests `WidgetFilterTest`; ganztägige bleiben), Neuzeichnen zum nächsten Terminende
   (`Background.scheduleWidgetRefreshAt`, WorkManager, kann im Doze-Modus etwas später kommen). Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`
@@ -147,7 +243,7 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   Vermutung (nicht belegt): vor App-Updates platzierte Widgets wurden nicht neu angestoßen. Deshalb
   zeichnet `UpdateReceiver` (MY_PACKAGE_REPLACED, BOOT_COMPLETED) und jeder App-Start das Widget neu.
 - **Wetter im Widget** (Wunsch des Nutzers): eigene schwarze Pille (`WeatherPill`, so breit wie der Text,
-  mittig, 40 dp hoch, Schrift 16 sp) über der Terminfläche bzw. ohne Termine über den Knöpfen (Antippen öffnet Chip), **kein Wettersymbol** (gab es kurz, v40–v42;
+  mittig, 40 dp hoch bzw. höher mit Regenzeile, Schrift 16 sp) über der Terminfläche bzw. ohne Termine über den Knöpfen (Antippen öffnet Chip), **kein Wettersymbol** (gab es kurz, v40–v42;
   vom Nutzer wieder gestrichen: stündlicher WMO-Code nicht eindeutig einem Zeitraum zuzuordnen, zeigte
   Regen, wo andere Apps keinen sahen), aktuelle Temperatur (stündliche Vorhersage der laufenden
   Stunde), Höchst-/Tiefstwert und Regenhinweis (`WeatherText`; Regen als **zweite Zeile** in Hellblau und fett,
@@ -201,3 +297,27 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
 - Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
 - Teilnehmer einladen; „Später erinnern“ an der Benachrichtigung.
 - Eigenes App-Icon.
+
+## Übergabe-Notizen (Stand 2026-11-11)
+
+- **Letzter Release: v78** (2026-11-11, PR #27: Regenhinweis als zweite Zeile, Stempel-Knopf wird nicht mehr
+  verdrängt). Davor v75 (PR #26, Erinnerungen) und v73 (PR #25, Serientermine), beide 2026-11-09.
+- **Auf dem Gerät bestätigt** bis v59 sowie der Stempel-Knopf (v61/v63). Der Nutzer hat am 2026-11-11 ein Widget mit
+  v75 oder älter gezeigt (Regenzeile verdrängte den Knopf, behoben in v78). **Nicht ausdrücklich bestätigt:** Serien
+  (v73), Erinnerungen (v75), Regenzeile (v78). Der Nutzer wollte keine Prüfliste („ich melde mich, wenn was nicht
+  funktioniert“).
+- **Halbfertig im Code:** nichts. Alle Arbeit ist in `main`.
+- **Branches:** `main` = v78. `claude/vigilant-lamport-2afb5d` = `main` plus diese Doku-Übergabe (PR offen, nicht
+  gemergt). Keine weiteren Branches.
+- **Größte Unsicherheiten** (siehe `TODO.md`):
+  - Ob Android/Samsung `EVENT_REMINDER` pünktlich an Chip liefert. Falls nicht, ist der Vorschlag: Chip plant eigene
+    Alarme (`setExactAndAllowWhileIdle`, nicht `setAlarmClock` – sonst steht jeder Termin als Wecker in der Statusleiste).
+  - Wie Google-Sync von Chip angelegte Serien-Ausnahmen übernimmt.
+- **Offene Fragen an den Nutzer:**
+  - Kommen Erinnerungen pünktlich und einmal (Google-/Samsung-Kalender-Benachrichtigungen schon aus)?
+    Ist Chip in den Samsung-Akku-Einstellungen von der Optimierung ausgenommen?
+  - Wurde die tägliche Abo-Aktualisierung im Hintergrund inzwischen beobachtet?
+- **Ausgelagert:** Geteilte ToDo-/Einkaufsliste – der Nutzer hält das eher für eine eigene App; Diskussion läuft in
+  einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“, https://claude.ai/code/session_012fSuJWzu9Bsebas3TtG27W).
+  Für Chip nichts entschieden.
+
