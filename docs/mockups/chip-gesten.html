@@ -1,0 +1,488 @@
+<title>Chip Gesten-Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,700&display=swap">
+<style>
+/* Layout: links Erklärung + Steuerung, rechts ein Handy mit Chip-Ansichten; schmal untereinander. */
+:root {
+  --page: #eef1f6;
+  --ink: #1b2230;
+  --muted: #5b6475;
+  --line: #d6dbe4;
+  --panel: #ffffff;
+  --phone-frame: #1d2129;
+  --app-bg: #fbfcff;
+  --app-ink: #1a1c20;
+  --app-muted: #6b7180;
+  --app-grid: #e3e6ec;
+  --primary: #3b5fc0;
+  --on-primary: #ffffff;
+  --sel: #dde5fb;
+  --now: #d93a3a;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-app: "Roboto Flex", Roboto, "Segoe UI", system-ui, sans-serif;
+  --dur: 280ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #12151b; --ink: #e6e9f0; --muted: #9aa3b5; --line: #2a303b; --panel: #1a1e26;
+    --phone-frame: #000000; --app-bg: #111318; --app-ink: #e3e5ec; --app-muted: #9097a6; --app-grid: #262a33;
+    --primary: #aec2ff; --on-primary: #10255c; --sel: #24314f; --now: #ff6b6b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #12151b; --ink: #e6e9f0; --muted: #9aa3b5; --line: #2a303b; --panel: #1a1e26;
+  --phone-frame: #000000; --app-bg: #111318; --app-ink: #e3e5ec; --app-muted: #9097a6; --app-grid: #262a33;
+  --primary: #aec2ff; --on-primary: #10255c; --sel: #24314f; --now: #ff6b6b; color-scheme: dark;
+}
+body { background: var(--page); color: var(--ink); font-family: var(--font-ui); }
+.wrap {
+  max-width: 1040px; margin: 0 auto;
+  padding-block: 28px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: start;
+}
+@media (max-width: 820px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; } .phone-col { order: -1; justify-self: center; } }
+h1 { font-size: 1.7rem; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0 0 22px; max-width: 58ch; line-height: 1.5; }
+h2 { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+button.ctl {
+  font: inherit; font-size: .92rem; padding: 9px 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+button.ctl:hover { border-color: var(--primary); }
+button.ctl:focus-visible, .phone button:focus-visible, label.toggle input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+button.ctl[disabled] { opacity: .45; cursor: default; }
+label.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: .92rem; cursor: pointer; margin-top: 4px; }
+.notes { display: grid; gap: 12px; max-width: 60ch; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; line-height: 1.5; }
+.note b { font-weight: 600; }
+.small { font-size: .85rem; color: var(--muted); }
+
+/* Handy */
+.phone {
+  width: 340px; max-width: 100%; aspect-ratio: 340 / 700; background: var(--phone-frame);
+  border-radius: 42px; padding: 12px; box-sizing: border-box; box-shadow: 0 18px 40px rgba(0,0,0,.25);
+}
+.screen {
+  width: 100%; height: 100%; border-radius: 32px; overflow: hidden; background: var(--app-bg); color: var(--app-ink);
+  font-family: var(--font-app); display: flex; flex-direction: column; position: relative;
+}
+.status { height: 26px; flex: none; }
+.topbar { display: flex; align-items: center; gap: 8px; padding: 2px 12px 6px; flex: none; }
+.topbar .title { font-size: 1.15rem; font-weight: 500; }
+.chip-btn { font: inherit; font-size: .8rem; border: 1px solid var(--app-grid); background: transparent; color: var(--app-ink); border-radius: 999px; padding: 4px 10px; }
+.gear { margin-left: auto; font-size: 1.15rem; color: var(--app-muted); }
+.stage { position: relative; flex: 1; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.stage:active { cursor: grabbing; }
+.page { position: absolute; inset: 0; background: var(--app-bg); display: flex; flex-direction: column; will-change: transform, opacity; }
+.page.moving { box-shadow: 0 0 24px rgba(0,0,0,.18); }
+.anim { transition: transform var(--dur) cubic-bezier(.2,.8,.2,1), opacity var(--dur) cubic-bezier(.2,.8,.2,1); }
+.fabs { position: absolute; right: 12px; bottom: 14px; display: flex; gap: 8px; z-index: 5; pointer-events: none; }
+.fab { border-radius: 16px; padding: 10px 14px; font-size: .85rem; font-weight: 500; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
+.zoom-hint { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; background: var(--primary); color: var(--on-primary);
+  border-radius: 999px; padding: 4px 12px; font-size: .8rem; font-weight: 500; opacity: 0; transition: opacity 160ms; pointer-events: none; }
+.zoom-hint.show { opacity: 1; }
+
+/* Seitenkopf der Ansicht */
+.phead { display: flex; align-items: center; padding: 0 4px; flex: none; }
+.phead .arrow { width: 36px; text-align: center; font-size: 1.3rem; color: var(--app-muted); }
+.phead .ptitle { flex: 1; text-align: center; font-size: .92rem; font-weight: 500; }
+
+/* Woche / Tag */
+.days { display: flex; padding-left: 28px; padding-right: 4px; flex: none; }
+.days .d { flex: 1; text-align: center; font-size: .66rem; color: var(--app-muted); padding: 2px 0 4px; border-radius: 8px; }
+.days .d b { display: block; margin: 1px auto 0; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; font-size: .78rem; color: var(--app-ink); font-weight: 500; }
+.days .d.sel { background: var(--sel); }
+.days .d.today b { background: var(--primary); color: var(--on-primary); }
+.grid { position: relative; flex: 1; margin-right: 4px; border-top: 1px solid var(--app-grid); }
+.hours { position: absolute; left: 0; top: 0; bottom: 0; width: 28px; }
+.hours span { position: absolute; right: 4px; font-size: .58rem; color: var(--app-muted); transform: translateY(-50%); }
+.cols { position: absolute; left: 28px; right: 0; top: 0; bottom: 0; display: flex;
+  background-image: linear-gradient(var(--app-grid) 1px, transparent 1px); background-size: 100% 10%; }
+.col { flex: 1; position: relative; border-left: 1px solid var(--app-grid); }
+.ev { position: absolute; left: 1px; right: 1px; border-radius: 4px; color: #fff; font-size: .58rem; line-height: 1.15; padding: 2px 3px; overflow: hidden; box-sizing: border-box; }
+.day-view .ev { font-size: .74rem; padding: 4px 6px; }
+.ev small { display: block; opacity: .85; }
+.nowline { position: absolute; left: 0; right: 0; height: 2px; background: var(--now); }
+
+/* Monat */
+.month { flex: 1; display: grid; grid-template-rows: auto repeat(6, 1fr); padding: 0 6px 70px; gap: 2px; }
+.wd { display: grid; grid-template-columns: repeat(7, 1fr); font-size: .62rem; color: var(--app-muted); text-align: center; }
+.wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cell { border-radius: 9px; display: flex; flex-direction: column; align-items: center; padding-top: 3px; font-size: .78rem; }
+.cell.out { color: var(--app-muted); opacity: .5; }
+.cell.sel { background: var(--sel); }
+.cell.today .n { border: 1.5px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; line-height: 18px; text-align: center; box-sizing: border-box; font-weight: 700; }
+.dots { display: flex; gap: 2px; margin-top: 3px; }
+.dot { width: 5px; height: 5px; border-radius: 50%; }
+
+/* Jahr */
+.year { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; padding: 2px 8px 70px; align-content: start; }
+.mini { border-radius: 8px; padding: 3px; }
+.mini.sel { background: var(--sel); }
+.mini h4 { margin: 0 0 2px; font-size: .64rem; font-weight: 500; }
+.mini .mg { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+.mini .md { font-size: .44rem; text-align: center; border-radius: 50%; aspect-ratio: 1; line-height: 1.9; color: var(--app-muted); }
+.mini .md.busy { background: var(--sel); color: var(--app-ink); font-weight: 700; }
+.mini .md.today { background: var(--primary); color: var(--on-primary); }
+
+@media (prefers-reduced-motion: reduce) { :root { --dur: 120ms; } }
+</style>
+
+<div class="wrap">
+  <section>
+    <h1>Chip Gesten-Mockup</h1>
+    <p class="lead">Probe für zwei Rückmeldungen in Chip: Beim Wischen folgt die Ansicht dem Finger und schiebt die vorherige zur Seite, beim Pinch zoomt die neue Ansicht aus dem gewählten Tag heraus bzw. in ihn hinein. Termine sind Beispiele.</p>
+
+    <h2>Ausprobieren</h2>
+    <div class="controls">
+      <button class="ctl" id="btn-prev" type="button">‹ Zurück</button>
+      <button class="ctl" id="btn-next" type="button">Weiter ›</button>
+      <button class="ctl" id="btn-in" type="button">Aufziehen (feiner)</button>
+      <button class="ctl" id="btn-out" type="button">Zusammenschieben (gröber)</button>
+    </div>
+    <label class="toggle"><input type="checkbox" id="slow"> Zeitlupe</label>
+    <p class="small">Im Handy: mit Maus oder Finger waagerecht ziehen. Auf einem Touchscreen zusätzlich mit zwei Fingern aufziehen oder zusammenschieben; am Rechner geht Zoomen mit Strg + Mausrad.</p>
+
+    <h2>Was passiert</h2>
+    <div class="notes">
+      <div class="note"><b>Wischen.</b> Die Ansicht hängt am Finger, daneben schaut schon der nächste bzw. vorherige Zeitraum herein. Loslassen nach gut einem Viertel der Breite (oder mit Schwung) blättert weiter, sonst federt sie zurück. Die Pfeile im Kopf lösen dieselbe Bewegung aus.</div>
+      <div class="note"><b>Aufziehen.</b> Die aktuelle Ansicht wird größer und blendet aus, die feinere wächst aus dem gewählten Tag heraus: Jahr → Monat → Woche → Tag.</div>
+      <div class="note"><b>Zusammenschieben.</b> Umgekehrt: Die Ansicht schrumpft auf den gewählten Tag zusammen, die gröbere setzt sich von außen darüber. Während der Geste läuft alles mit den Fingern mit, ein Schild oben zeigt das Ziel.</div>
+    </div>
+  </section>
+
+  <div class="phone-col">
+    <div class="phone" aria-label="Chip-Vorschau">
+      <div class="screen">
+        <div class="status"></div>
+        <div class="topbar">
+          <span class="title" id="title">Woche ▾</span>
+          <span class="chip-btn">Heute</span>
+          <span class="gear" aria-hidden="true">⚙</span>
+        </div>
+        <div class="stage" id="stage">
+          <div class="zoom-hint" id="hint"></div>
+        </div>
+        <div class="fabs">
+          <span class="fab" style="background:#00897b">+ Lan</span>
+          <span class="fab" style="background:#3f51b5">+ Arb</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const LEVELS = ['Tag', 'Woche', 'Monat', 'Jahr'];
+  const TODAY = new Date(2026, 10, 4); // Beispiel: Mi, 4. Nov 2026
+  const CALS = [
+    { name: 'Langners', color: '#00897b' },
+    { name: 'Arbeit', color: '#3f51b5' },
+    { name: 'Abo', color: '#e8590c' },
+  ];
+  const TITLES = ['Teammeeting', 'Zahnarzt', 'Training', 'Einkauf', 'Vorlesung', 'Abendessen', 'Projektabgabe', 'Yoga', 'Elternabend', 'Werkstatt'];
+  const PLACES = ['Büro', 'Praxis Dr. Kern', 'Halle 2', 'Markt', 'Hörsaal 4', 'Zuhause', '', 'Studio', 'Schule', 'Autohaus'];
+  const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const WD = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+  let level = 1;
+  let date = new Date(TODAY);
+  const stage = document.getElementById('stage');
+  const hint = document.getElementById('hint');
+  const titleEl = document.getElementById('title');
+  let cur = null;
+  let busy = false;
+
+  const same = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const monday = d => addDays(d, -((d.getDay() + 6) % 7));
+  function shift(d, lvl, n) {
+    const x = new Date(d);
+    if (lvl === 0) x.setDate(x.getDate() + n);
+    else if (lvl === 1) x.setDate(x.getDate() + 7 * n);
+    else if (lvl === 2) { const day = x.getDate(); x.setDate(1); x.setMonth(x.getMonth() + n); x.setDate(Math.min(day, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate())); }
+    else x.setFullYear(x.getFullYear() + n);
+    return x;
+  }
+  function seed(d) { let h = d.getFullYear() * 400 + d.getMonth() * 32 + d.getDate(); h = (h * 2654435761) >>> 0; return h; }
+  function eventsFor(d) {
+    let h = seed(d); const n = [0, 1, 1, 2, 2, 3][h % 6]; const out = []; let t = 8.5 + (h >>> 4) % 3;
+    for (let i = 0; i < n; i++) {
+      h = (h * 1103515245 + 12345) >>> 0;
+      const len = [1, 1, 1.5, 2, 0.75][h % 5];
+      const k = (h >>> 3) % TITLES.length;
+      out.push({ start: t, end: Math.min(t + len, 18), title: TITLES[k], place: PLACES[k], cal: CALS[(h >>> 7) % 3] });
+      t += len + 0.5 + ((h >>> 9) % 3) * 0.75;
+      if (t >= 17.5) break;
+    }
+    return out;
+  }
+  const hhmm = v => `${String(Math.floor(v)).padStart(2, '0')}:${String(Math.round((v % 1) * 60)).padStart(2, '0')}`;
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+  function head(text) {
+    const h = el('div', 'phead');
+    h.append(el('span', 'arrow', '‹'), el('span', 'ptitle', text), el('span', 'arrow', '›'));
+    return h;
+  }
+
+  function timeGrid(days, single) {
+    const page = el('div', 'page' + (single ? ' day-view' : ''));
+    const first = days[0], last = days[days.length - 1];
+    const kw = Math.ceil(((monday(first) - new Date(first.getFullYear(), 0, 1)) / 864e5 + 1) / 7) + 1;
+    page.append(head(single
+      ? `${WD[(first.getDay() + 6) % 7]}, ${first.getDate()}. ${MONTHS[first.getMonth()]}`
+      : `KW ${kw} · ${first.getDate()}. ${MONTHS[first.getMonth()].slice(0, 3)} – ${last.getDate()}. ${MONTHS[last.getMonth()].slice(0, 3)}`));
+    const dh = el('div', 'days');
+    days.forEach(d => {
+      const c = el('div', 'd' + (same(d, date) ? ' sel' : '') + (same(d, TODAY) ? ' today' : ''), `${WD[(d.getDay() + 6) % 7]}<b>${d.getDate()}</b>`);
+      if (same(d, date)) c.dataset.sel = '1';
+      dh.append(c);
+    });
+    page.append(dh);
+    const grid = el('div', 'grid');
+    const hours = el('div', 'hours');
+    for (let h = 9; h < 18; h++) { const s = el('span', null, String(h).padStart(2, '0')); s.style.top = `${(h - 8) * 10}%`; hours.append(s); }
+    const cols = el('div', 'cols');
+    days.forEach(d => {
+      const col = el('div', 'col');
+      if (same(d, date)) col.dataset.sel = '1';
+      eventsFor(d).forEach(e => {
+        const b = el('div', 'ev', `${e.title}${single ? `<small>${hhmm(e.start)}–${hhmm(e.end)}${e.place ? ' · ' + e.place : ''}</small>` : ''}`);
+        b.style.top = `${(e.start - 8) * 10}%`; b.style.height = `${(e.end - e.start) * 10}%`; b.style.background = e.cal.color;
+        col.append(b);
+      });
+      if (same(d, TODAY)) { const n = el('div', 'nowline'); n.style.top = `${(11.3 - 8) * 10}%`; col.append(n); }
+      cols.append(col);
+    });
+    grid.append(hours, cols);
+    page.append(grid);
+    return page;
+  }
+
+  function monthView(d) {
+    const page = el('div', 'page');
+    page.append(head(`${MONTHS[d.getMonth()]} ${d.getFullYear()}`));
+    const m = el('div', 'month');
+    const wd = el('div', 'wd'); WD.forEach(w => wd.append(el('span', null, w))); m.append(wd);
+    let s = monday(new Date(d.getFullYear(), d.getMonth(), 1));
+    for (let r = 0; r < 6; r++) {
+      const row = el('div', 'wk');
+      for (let i = 0; i < 7; i++) {
+        const day = addDays(s, i);
+        const c = el('div', 'cell' + (day.getMonth() !== d.getMonth() ? ' out' : '') + (same(day, date) ? ' sel' : '') + (same(day, TODAY) ? ' today' : ''));
+        if (same(day, date)) c.dataset.sel = '1';
+        c.append(el('span', 'n', String(day.getDate())));
+        const dots = el('div', 'dots');
+        eventsFor(day).slice(0, 3).forEach(e => { const x = el('span', 'dot'); x.style.background = e.cal.color; dots.append(x); });
+        c.append(dots); row.append(c);
+      }
+      m.append(row); s = addDays(s, 7);
+    }
+    page.append(m);
+    return page;
+  }
+
+  function yearView(d) {
+    const page = el('div', 'page');
+    page.append(head(String(d.getFullYear())));
+    const y = el('div', 'year');
+    for (let mo = 0; mo < 12; mo++) {
+      const mini = el('div', 'mini' + (mo === d.getMonth() ? ' sel' : ''));
+      if (mo === d.getMonth()) mini.dataset.sel = '1';
+      mini.append(el('h4', null, MONTHS[mo]));
+      const g = el('div', 'mg');
+      const first = new Date(d.getFullYear(), mo, 1);
+      for (let i = 0; i < (first.getDay() + 6) % 7; i++) g.append(el('span', 'md', ''));
+      const len = new Date(d.getFullYear(), mo + 1, 0).getDate();
+      for (let day = 1; day <= len; day++) {
+        const x = new Date(d.getFullYear(), mo, day);
+        g.append(el('span', 'md' + (same(x, TODAY) ? ' today' : eventsFor(x).length >= 2 ? ' busy' : ''), String(day)));
+      }
+      mini.append(g); y.append(mini);
+    }
+    page.append(y);
+    return page;
+  }
+
+  function render(lvl, d) {
+    const saved = date; date = d;
+    let p;
+    if (lvl === 0) p = timeGrid([d], true);
+    else if (lvl === 1) { const m = monday(d); p = timeGrid([0,1,2,3,4,5,6].map(i => addDays(m, i)), false); }
+    else if (lvl === 2) p = monthView(d);
+    else p = yearView(d);
+    date = saved;
+    // Pfeile im Kopf blättern mit derselben Bewegung wie das Wischen.
+    const arrows = p.querySelectorAll('.phead .arrow');
+    arrows[0].addEventListener('click', () => animateSwipe(-1));
+    arrows[1].addEventListener('click', () => animateSwipe(1));
+    return p;
+  }
+
+  function setPage(p) { if (cur) cur.remove(); cur = p; stage.append(p); titleEl.textContent = `${LEVELS[level]} ▾`; updateButtons(); }
+  const W = () => stage.clientWidth;
+  const dur = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur')) || 280;
+  const raf2 = f => requestAnimationFrame(() => requestAnimationFrame(f));
+
+  /* ---------- Wischen ---------- */
+  let nb = null; // { prev, next }
+  function ensureNeighbours() {
+    if (nb) return;
+    nb = { prev: render(level, shift(date, level, -1)), next: render(level, shift(date, level, 1)) };
+    stage.append(nb.prev, nb.next);
+    [cur, nb.prev, nb.next].forEach(p => p.classList.add('moving'));
+  }
+  function setX(dx) {
+    cur.style.transform = `translateX(${dx}px)`;
+    nb.prev.style.transform = `translateX(${dx - W()}px)`;
+    nb.next.style.transform = `translateX(${dx + W()}px)`;
+  }
+  function finishSwipe(dir) {
+    const pages = [cur, nb.prev, nb.next];
+    pages.forEach(p => p.classList.add('anim'));
+    setX(dir === 0 ? 0 : -dir * W());
+    busy = true;
+    setTimeout(() => {
+      const keep = dir === 1 ? nb.next : dir === -1 ? nb.prev : cur;
+      pages.forEach(p => { if (p !== keep) p.remove(); p.classList.remove('anim', 'moving'); p.style.transform = ''; });
+      if (dir !== 0) { date = shift(date, level, dir); cur = keep; titleEl.textContent = `${LEVELS[level]} ▾`; }
+      nb = null; busy = false;
+    }, dur() + 30);
+  }
+  function animateSwipe(dir) {
+    if (busy) return;
+    ensureNeighbours(); setX(0);
+    raf2(() => finishSwipe(dir));
+  }
+
+  /* ---------- Zoomen ---------- */
+  let zoom = null; // { tgt, into, tgtLevel, origin }
+  function selCenter(page) {
+    const s = page.querySelector('[data-sel]');
+    const r = stage.getBoundingClientRect();
+    if (!s) return { x: r.width / 2, y: r.height / 2 };
+    const b = s.getBoundingClientRect();
+    return { x: b.left + b.width / 2 - r.left, y: b.top + b.height / 2 - r.top };
+  }
+  function beginZoom(into, origin) {
+    const tgtLevel = level + (into ? -1 : 1);
+    if (tgtLevel < 0 || tgtLevel > 3) return false;
+    const tgt = render(tgtLevel, date);
+    stage.insertBefore(tgt, cur.nextSibling);
+    const o = origin || selCenter(into ? cur : tgt);
+    // Feinere Ansicht wächst aus dem gewählten Tag; gröbere setzt sich von außen darüber.
+    cur.style.transformOrigin = tgt.style.transformOrigin = `${o.x}px ${o.y}px`;
+    zoom = { tgt, into, tgtLevel };
+    hint.textContent = `${LEVELS[level]} → ${LEVELS[tgtLevel]}`;
+    hint.classList.add('show');
+    applyZoom(0);
+    return true;
+  }
+  function applyZoom(p) {
+    const { tgt, into } = zoom;
+    if (into) {
+      cur.style.transform = `scale(${1 + 0.8 * p})`; cur.style.opacity = String(1 - p);
+      tgt.style.transform = `scale(${0.3 + 0.7 * p})`; tgt.style.opacity = String(p);
+    } else {
+      cur.style.transform = `scale(${1 - 0.55 * p})`; cur.style.opacity = String(1 - p);
+      tgt.style.transform = `scale(${1.9 - 0.9 * p})`; tgt.style.opacity = String(p);
+    }
+  }
+  function finishZoom(commit) {
+    const { tgt, tgtLevel } = zoom;
+    [cur, tgt].forEach(p => p.classList.add('anim'));
+    applyZoom(commit ? 1 : 0);
+    busy = true;
+    setTimeout(() => {
+      [cur, tgt].forEach(p => { p.classList.remove('anim'); p.style.transform = ''; p.style.opacity = ''; p.style.transformOrigin = ''; });
+      if (commit) { cur.remove(); cur = tgt; level = tgtLevel; titleEl.textContent = `${LEVELS[level]} ▾`; }
+      else tgt.remove();
+      hint.classList.remove('show');
+      zoom = null; busy = false; updateButtons();
+    }, dur() + 30);
+  }
+  function animateZoom(into) {
+    if (busy || zoom) return;
+    if (!beginZoom(into)) return;
+    raf2(() => finishZoom(true));
+  }
+
+  /* ---------- Zeiger: ein Finger wischt, zwei zoomen ---------- */
+  const pts = new Map();
+  let sw = null; // { x0, y0, t0, dx, active }
+  let pinch = null; // { d0 }
+  const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const mid = () => { const [a, b] = [...pts.values()]; const r = stage.getBoundingClientRect(); return { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top }; };
+
+  stage.addEventListener('pointerdown', e => {
+    if (busy) return;
+    stage.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) sw = { x0: e.clientX, y0: e.clientY, t0: performance.now(), dx: 0, active: false };
+    if (pts.size === 2) {
+      if (sw && sw.active) { finishSwipe(0); }
+      sw = null; pinch = { d0: dist(), dir: 0, origin: mid() };
+    }
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size >= 2) {
+      const s = dist() / pinch.d0;
+      const dir = s > 1.03 ? 1 : s < 0.97 ? -1 : 0;
+      if (!zoom && dir !== 0) { if (!beginZoom(dir === 1, pinch.origin)) { pinch.blocked = true; return; } }
+      if (zoom) {
+        const p = zoom.into ? Math.min(1, Math.max(0, (s - 1) / 0.6)) : Math.min(1, Math.max(0, (1 - s) / 0.4));
+        applyZoom(p); pinch.p = p;
+      }
+      return;
+    }
+    if (!sw || busy) return;
+    sw.dx = e.clientX - sw.x0;
+    const dy = e.clientY - sw.y0;
+    if (!sw.active && Math.abs(sw.dx) > 8 && Math.abs(sw.dx) > 1.5 * Math.abs(dy)) { sw.active = true; ensureNeighbours(); }
+    if (sw.active) setX(sw.dx);
+  });
+  function up(e) {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pinch) {
+      if (pts.size < 2) { if (zoom) finishZoom((pinch.p || 0) > 0.45); pinch = null; }
+      if (pts.size === 0) sw = null;
+      return;
+    }
+    if (sw && sw.active) {
+      const v = sw.dx / Math.max(1, performance.now() - sw.t0);
+      const dir = Math.abs(sw.dx) > W() * 0.25 || Math.abs(v) > 0.6 ? (sw.dx < 0 ? 1 : -1) : 0;
+      finishSwipe(dir);
+    }
+    sw = null;
+  }
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  stage.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    animateZoom(e.deltaY < 0);
+  }, { passive: false });
+
+  /* ---------- Steuerung ---------- */
+  const bIn = document.getElementById('btn-in'), bOut = document.getElementById('btn-out');
+  function updateButtons() { bIn.disabled = level === 0; bOut.disabled = level === 3; }
+  document.getElementById('btn-prev').addEventListener('click', () => animateSwipe(-1));
+  document.getElementById('btn-next').addEventListener('click', () => animateSwipe(1));
+  bIn.addEventListener('click', () => animateZoom(true));
+  bOut.addEventListener('click', () => animateZoom(false));
+  document.getElementById('slow').addEventListener('change', e => {
+    document.documentElement.style.setProperty('--dur', e.target.checked ? '1200ms' : '');
+  });
+
+  setPage(render(level, date));
+})();
+</script>

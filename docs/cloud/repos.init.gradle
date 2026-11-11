@@ -1,0 +1,7 @@
+// Nur lokal in der Cloud-Sitzung: repo.maven.apache.org drosselt hier (429), repo1.maven.org nicht.
+settingsEvaluated { s ->
+    s.pluginManagement.repositories.clear()
+    s.pluginManagement.repositories { google(); maven { url = "https://repo1.maven.org/maven2" }; gradlePluginPortal() }
+    s.dependencyResolutionManagement.repositories.clear()
+    s.dependencyResolutionManagement.repositories { google(); maven { url = "https://repo1.maven.org/maven2" }; maven { url = "https://www.jitpack.io" } }
+}
