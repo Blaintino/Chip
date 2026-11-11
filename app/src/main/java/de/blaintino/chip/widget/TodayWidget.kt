@@ -207,6 +207,8 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 private val BG = Color.Black
 private val TEXT = ColorProvider(Color.White)
 private val TEXT_DIM = ColorProvider(Color(0xFFB0B0B0))
+/** Regenhinweis in der Wetter-Pille: auffällig hellblau (Wunsch des Nutzers). */
+private val RAIN = ColorProvider(Color(0xFF64B5F6))
 
 @Composable
 private fun WidgetContent(today: LocalDate, state: WidgetData) {
@@ -308,29 +310,50 @@ private fun TopRow(weather: String?, stempel: StempelStatus?) {
         horizontalAlignment = if (stempel == null) Alignment.CenterHorizontally else Alignment.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (weather != null) WeatherPill(weather)
-        if (stempel != null) {
-            Spacer(GlanceModifier.defaultWeight())
+        // Mit Stempel-Knopf füllt die Pille nur den Rest der Zeile: Der Knopf wird zuerst gemessen und kann
+        // nicht mehr aus dem Widget geschoben werden (vom Nutzer gemeldet: langer Regenhinweis verdrängte ihn).
+        if (stempel == null) {
+            if (weather != null) WeatherPill(weather)
+        } else {
+            if (weather != null) {
+                WeatherPill(weather, GlanceModifier.defaultWeight())
+                Spacer(GlanceModifier.width(8.dp))
+            } else {
+                Spacer(GlanceModifier.defaultWeight())
+            }
             StempelButton(stempel)
         }
     }
 }
 
 @Composable
-private fun WeatherPill(text: String) {
-    // Die Pille ist nur so breit wie der Text.
+private fun WeatherPill(text: String, modifier: GlanceModifier = GlanceModifier) {
+    // Ohne Stempel-Knopf ist die Pille nur so breit wie der Text, mit Knopf füllt sie den Platz links davon.
+    // Regenhinweis als zweite Zeile (Wunsch des Nutzers), dann wächst die Pille in die Höhe.
+    val lines = text.split('\n')
+    val rain = lines.getOrNull(1)
     Box(
         // Antippen öffnet Chip (Wunsch des Nutzers).
-        modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(BG)
+        modifier = (if (rain == null) modifier.height(40.dp) else modifier.padding(vertical = 6.dp))
+            .cornerRadius(20.dp).background(BG)
             .padding(horizontal = 18.dp).clickable(actionStartActivity<MainActivity>()),
         contentAlignment = Alignment.Center,
     ) {
-        // Größere Schrift (Wunsch des Nutzers, vorher 13 sp).
-        Text(
-            text = text,
-            maxLines = 1,
-            style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center),
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Größere Schrift (Wunsch des Nutzers, vorher 13 sp).
+            Text(
+                text = lines.first(),
+                maxLines = 1,
+                style = TextStyle(color = TEXT, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center),
+            )
+            if (rain != null) {
+                Text(
+                    text = rain,
+                    maxLines = 1,
+                    style = TextStyle(color = RAIN, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center),
+                )
+            }
+        }
     }
 }
 

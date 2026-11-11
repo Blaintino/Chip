@@ -166,12 +166,15 @@ object WeatherText {
     const val RAIN_THRESHOLD = 40
 
     /**
-     * Ganze Wetterzeile fürs Widget, z. B. „11°   ↑ 14°  ↓ 4°   ☂ ab 15 Uhr (70 %)“; null ohne Daten.
+     * Wetter fürs Widget, z. B. „11°   ↑ 14°  ↓ 4°“; ein Regenhinweis steht in einer zweiten Zeile
+     * („\n☂ ab 15 Uhr (70 %)“, Wunsch des Nutzers: auffälliger und verdrängt nichts). null ohne Daten.
      * Bewusst ohne Wettersymbol (Wunsch des Nutzers): Der stündliche Wettercode war nicht eindeutig einem
      * Zeitraum zuzuordnen und zeigte Regen, wo andere Apps keinen sahen.
      */
-    fun line(day: WeatherDay, now: LocalDateTime): String? =
-        listOfNotNull(current(day, now), temperatures(day), rainHint(day, now)).joinToString("   ").ifBlank { null }
+    fun line(day: WeatherDay, now: LocalDateTime): String? {
+        val temps = listOfNotNull(current(day, now), temperatures(day)).joinToString("   ")
+        return listOf(temps, rainHint(day, now).orEmpty()).filter { it.isNotBlank() }.joinToString("\n").ifBlank { null }
+    }
 
     /** Temperatur der laufenden Stunde, z. B. „11°“. */
     fun current(day: WeatherDay, now: LocalDateTime): String? =
