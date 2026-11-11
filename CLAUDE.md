@@ -150,7 +150,8 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   mittig, 40 dp hoch, Schrift 16 sp) über der Terminfläche bzw. ohne Termine über den Knöpfen (Antippen öffnet Chip), **kein Wettersymbol** (gab es kurz, v40–v42;
   vom Nutzer wieder gestrichen: stündlicher WMO-Code nicht eindeutig einem Zeitraum zuzuordnen, zeigte
   Regen, wo andere Apps keinen sahen), aktuelle Temperatur (stündliche Vorhersage der laufenden
-  Stunde), Höchst-/Tiefstwert und Regenhinweis (`WeatherText`,
+  Stunde), Höchst-/Tiefstwert und Regenhinweis (`WeatherText`; Regen als **zweite Zeile** in Hellblau und fett,
+  Wunsch des Nutzers 2026-11-11, die Pille wird dann höher; `line()` trennt mit `\n`,
   Schwelle 40 % für die restlichen Stunden, Tests `WeatherTextTest`) (siehe Pille oben). Quelle Open-Meteo (frei, ohne Schlüssel,
   Namensnennung in den Einstellungen), Ort **nur per Namenssuche** in den Einstellungen – ausdrücklich
   keine Standort-Berechtigung. Antwort in SharedPreferences `weather`, höchstens stündlich neu

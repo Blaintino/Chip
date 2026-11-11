@@ -39,6 +39,13 @@ class WeatherTextTest {
     }
 
     @Test
+    fun `Regenhinweis steht in einer zweiten Zeile`() {
+        val rain = IntArray(24) { 0 }.also { it[11] = 60 }
+        val d = day(*rain).copy(hourlyTemp = listOf(date.atTime(11, 0) to 10.6))
+        assertEquals("11°   ↑ 14°  ↓ 4°\n☂ jetzt (60 %)", WeatherText.line(d, LocalDateTime.of(2026, 11, 2, 11, 50)))
+    }
+
+    @Test
     fun `Regen in der laufenden Stunde heißt jetzt`() {
         val rain = IntArray(24) { 0 }.also { it[11] = 60 }
         assertEquals("☂ jetzt (60 %)", WeatherText.rainHint(day(*rain), LocalDateTime.of(2026, 11, 2, 11, 50)))
