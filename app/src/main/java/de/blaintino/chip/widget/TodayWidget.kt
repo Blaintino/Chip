@@ -308,20 +308,28 @@ private fun TopRow(weather: String?, stempel: StempelStatus?) {
         horizontalAlignment = if (stempel == null) Alignment.CenterHorizontally else Alignment.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (weather != null) WeatherPill(weather)
-        if (stempel != null) {
-            Spacer(GlanceModifier.defaultWeight())
+        // Mit Stempel-Knopf füllt die Pille nur den Rest der Zeile: Der Knopf wird zuerst gemessen und kann
+        // nicht mehr aus dem Widget geschoben werden (vom Nutzer gemeldet: langer Regenhinweis verdrängte ihn).
+        if (stempel == null) {
+            if (weather != null) WeatherPill(weather)
+        } else {
+            if (weather != null) {
+                WeatherPill(weather, GlanceModifier.defaultWeight())
+                Spacer(GlanceModifier.width(8.dp))
+            } else {
+                Spacer(GlanceModifier.defaultWeight())
+            }
             StempelButton(stempel)
         }
     }
 }
 
 @Composable
-private fun WeatherPill(text: String) {
-    // Die Pille ist nur so breit wie der Text.
+private fun WeatherPill(text: String, modifier: GlanceModifier = GlanceModifier) {
+    // Ohne Stempel-Knopf ist die Pille nur so breit wie der Text, mit Knopf füllt sie den Platz links davon.
     Box(
         // Antippen öffnet Chip (Wunsch des Nutzers).
-        modifier = GlanceModifier.height(40.dp).cornerRadius(20.dp).background(BG)
+        modifier = modifier.height(40.dp).cornerRadius(20.dp).background(BG)
             .padding(horizontal = 18.dp).clickable(actionStartActivity<MainActivity>()),
         contentAlignment = Alignment.Center,
     ) {

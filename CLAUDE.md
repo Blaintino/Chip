@@ -161,7 +161,9 @@ Gebrauch. Funktionen und Dateiübersicht: `README.md`. Oberfläche, Texte, Commi
   fehlgeschlagen).
 - **Stempel-Knopf im Widget** (Wunsch des Nutzers, 2026-11-03): Anbindung an die eigene App FH Stempelkarte
   (`Blaintino/FH-Stempelkarte`, Vertrag dort in `INTEROP.md`), `stempel/Stempelkarte.kt`. Rechts in der Zeile der
-  Wetter-Pille (`TopRow`; mit Knopf steht das Wetter links, ohne Stempelkarte wie früher mittig): nicht
+  Wetter-Pille (`TopRow`; mit Knopf steht das Wetter links und füllt mit `defaultWeight` nur den Rest der Zeile –
+  vorher schob ein langer Regenhinweis den Knopf aus dem Widget, vom Nutzer gemeldet 2026-11-11; ohne Stempelkarte
+  wie früher mittig und so breit wie der Text): nicht
   eingeloggt ein **rundes Symbol** (`ic_stempel_login`, 40 dp; vorher Text „Einloggen“ – dem Nutzer dauerhaft zu
   aufdringlich, eine sinnvolle Regel zum Ausblenden fiel ihm nicht ein) in der Farbe der Stempelkarte (rot bei
   `NICHT_EINGELOGGT`, sonst schwarz wie die Pille). **Nur im Kontext sichtbar** (Wunsch des Nutzers, Varianten
