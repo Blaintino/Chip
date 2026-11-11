@@ -33,6 +33,7 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-11, letzter Rele
   Wochentag, mit Enddatum. Einzelne Termine verschieben, „dieser und folgende“, ganze Serie löschen.
 - [x] Erinnerungen (v75): höchstens 3 je Termin; Vorgaben in den Einstellungen (ab Werk 1 Tag, 1 Std., 15 Min.
   vorher), werden von jedem neuen Termin übernommen und nur im Termin geändert oder gelöscht.
+- [x] Widget nur so hoch wie der Inhalt, Knöpfe direkt unter den Terminen, Liste scrollt bei Platzmangel (v79+).
 - [x] Stempel-Knopf wird nicht mehr von einer langen Wetterzeile aus dem Widget geschoben (v78).
 - [x] Regenhinweis als zweite, auffällige (hellblau, fett) Zeile; die Pille wächst nur bei Regen (v78).
 - [x] Stempel-Knopf der FH Stempelkarte im Widget (v61–v71, aus einer anderen Session; Details in `CLAUDE.md`).

@@ -70,7 +70,7 @@ Neue Logik genauso aufteilen.
   zur nächsten vollen Stunde.
 - Editor: nur beschreibbare und eingeschaltete Kalender.
 - Kalenderfarben und Ausblenden nur in Chip, nie am Konto.
-- Widget: keine Kopfzeile, Schwarz nur hinter Terminen, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
+- Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
   „+ Quälgeist“ in der Material-You-Hauptfarbe, Stempel-Knopf nur im Kontext.
 - Mehrtägige Termine: Monat dünne Balken direkt unter der Zahl, Jahr Tage voll eingefärbt.
 - Erinnerungen: höchstens 3 je Termin; Vorgaben in den Einstellungen (ab Werk 1 Tag / 1 Std. / 15 Min.) gelten für
@@ -217,8 +217,11 @@ Neue Logik genauso aufteilen.
   - WorkManager: täglich mit Netz (`Background.schedule`, auch bei jedem App-Start), beim Öffnen
     nachholen, wenn ein Abo über einen Tag alt ist.
 - **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), Widget durchsichtig mit reinem Schwarz
-  nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe, dann **oben** (Wunsch des Nutzers; mit Terminen unten; kein Hinweistext; ein Widget kann
-  seine Größe nicht selbst ändern), feste helle Schrift (Wunsch des Nutzers),
+  nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe, dann **oben** (Wunsch des Nutzers; kein Hinweistext; ein Widget kann
+  seine Größe nicht selbst ändern). **Nur so hoch wie der Inhalt** (Wunsch des Nutzers, 2026-11-11, v79+): alles
+  steht oben, die schwarze Fläche endet nach dem letzten Termin, die Knöpfe folgen direkt darunter; reicht der Platz
+  nicht, scrollt die Liste. Technik: Spalte ohne feste Höhe, Terminfläche mit `defaultWeight` (Höhe 0) – LinearLayout
+  misst sie zuerst in Inhaltsgröße und kürzt nur bei Platzmangel (bei `targetSdk` > 23). feste helle Schrift (Wunsch des Nutzers),
   scrollbare Liste mit Uhrzeit, Titel, Ort; **nur laufende und kommende Termine** (Wunsch des Nutzers,
   `WidgetFilter`, Tests `WidgetFilterTest`; ganztägige bleiben), Neuzeichnen zum nächsten Terminende
   (`Background.scheduleWidgetRefreshAt`, WorkManager, kann im Doze-Modus etwas später kommen). Unten Knöpfe: die Plus-Knöpfe aus `QuickAddCalendars`

@@ -215,8 +215,12 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
     // Widget selbst durchsichtig; nur der Terminbereich ist schwarz. Ohne anstehende Termine bleibt nur
     // die Knopfreihe sichtbar (Wunsch des Nutzers: Größe kann ein Widget nicht selbst ändern).
     // Keine Kopfzeile: Datum steht schon auf dem Startbildschirm, das Widget zeigt nur heute.
-    // Ohne anstehende Termine stehen die Knöpfe oben (Wunsch des Nutzers), sonst unter den Terminen.
-    Column(modifier = GlanceModifier.fillMaxSize()) {
+    // Ohne anstehende Termine stehen die Knöpfe oben (Wunsch des Nutzers), sonst direkt unter den Terminen.
+    // Nur so hoch wie nötig (Wunsch des Nutzers, 2026-11-11): Die Spalte ist nicht höher als ihr Inhalt, die
+    // Terminfläche hat Gewicht mit Höhe 0 – LinearLayout misst sie erst in Inhaltsgröße und kürzt sie nur, wenn
+    // das Widget zu klein ist; dann scrollt die Liste und die Knöpfe bleiben sichtbar.
+    Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
         // Ohne Termine – und solange noch nichts geladen ist – keine schwarze Fläche.
         val empty = (state is WidgetData.Loaded && state.events.isEmpty()) || state is WidgetData.Loading
         val quick = (state as? WidgetData.Loaded)?.quick.orEmpty()
@@ -253,6 +257,7 @@ private fun WidgetContent(today: LocalDate, state: WidgetData) {
             Spacer(GlanceModifier.height(6.dp))
             ButtonRow(quick)
         }
+    }
     }
 }
 
