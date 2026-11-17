@@ -299,16 +299,17 @@ Neue Logik genauso aufteilen.
 - Teilnehmer einladen; „Später erinnern“ an der Benachrichtigung.
 - Eigenes App-Icon.
 
-## Übergabe-Notizen (Stand 2026-11-11)
+## Übergabe-Notizen (Stand 2026-11-17)
 
-- **Letzter Release: v80** (2026-11-11, PR #28: Widget nur so hoch wie der Inhalt + diese Doku). Davor v78
+- **Letzter Release: v82** (2026-11-17, PR #29: Plus-Knöpfe der App am gewählten Tag). Davor v80 (2026-11-11,
+  PR #28: Widget nur so hoch wie der Inhalt + Übergabe-Doku), v78
   (PR #27: Regenhinweis als zweite Zeile, Stempel-Knopf wird nicht mehr verdrängt) und v75 (PR #26, Erinnerungen) und v73 (PR #25, Serientermine), beide 2026-11-09.
 - **Auf dem Gerät bestätigt** bis v59 sowie der Stempel-Knopf (v61/v63). Der Nutzer hat am 2026-11-11 ein Widget mit
   v75 oder älter gezeigt (Regenzeile verdrängte den Knopf, behoben in v78). **Nicht ausdrücklich bestätigt:** Serien
-  (v73), Erinnerungen (v75), Regenzeile (v78), Widgethöhe nach Inhalt (v80). Der Nutzer wollte keine Prüfliste („ich melde mich, wenn was nicht
+  (v73), Erinnerungen (v75), Regenzeile (v78), Widgethöhe nach Inhalt (v80), Plus am gewählten Tag (v82). Der Nutzer wollte keine Prüfliste („ich melde mich, wenn was nicht
   funktioniert“).
 - **Halbfertig im Code:** nichts. Alle Arbeit ist in `main`.
-- **Branches:** `main` = v80. `claude/vigilant-lamport-2afb5d` = `main` plus Doku-Nachträge (`[skip ci]`, ohne PR;
+- **Branches:** `main` = v82. `claude/vigilant-lamport-2afb5d` = `main` plus Doku-Nachträge (`[skip ci]`, ohne PR;
   gehen mit dem nächsten Release mit). Keine weiteren Branches.
 - **Arbeitsmodus seit 2026-11-11 (Wunsch des Nutzers): Sammeln ohne Programmieren.** Neue Wünsche nur in
   `TODO.md` aufnehmen (mit Entscheidungen), nichts umsetzen, bis der Nutzer ausdrücklich sagt, dass gebaut wird.

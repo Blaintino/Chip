@@ -1,7 +1,7 @@
 # Chip – offene Punkte
 
 Sammelliste (Wunsch des Nutzers): Kleinigkeiten ohne eigenen Build werden hier gesammelt und mit dem
-nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Release v80.
+nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Release v82.
 **Gerade Sammelmodus** (Wunsch des Nutzers): neue Wünsche hier eintragen, nicht programmieren.
 
 ## Offen
