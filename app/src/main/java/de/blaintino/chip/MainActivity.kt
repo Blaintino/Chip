@@ -261,7 +261,7 @@ private fun ChipApp(
      * Neuer Termin. Ohne [at] (Plus-Knopf) heute zur nächsten vollen Stunde (Wunsch des Nutzers),
      * mit [at] (Tippen ins Raster) dort. [calendarId] kommt von einem Schnellauswahl-Plus.
      */
-    fun newEvent(at: LocalDateTime? = null, calendarId: Long? = null) {
+    fun newEvent(at: LocalDateTime? = null, calendarId: Long? = null, day: LocalDate? = null) {
         val choices = editorCalendars(null)
         // Bevorzugt der Hauptkalender eines Kontos (Name = Kontoname, bei Google die Mailadresse).
         val cal = calendarId?.let { id -> calendars.firstOrNull { it.id == id && it.writable } }
@@ -272,7 +272,10 @@ private fun ChipApp(
         }
         val zone = ZoneId.systemDefault()
         val now = LocalDateTime.now(zone)
-        val start = at ?: now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+        // Plus-Knöpfe der App: am gewählten Tag (Wunsch des Nutzers, 2026-11-17) – heute zur nächsten vollen
+        // Stunde, an anderen Tagen um 9:00. Widget-Knöpfe (ohne [day]) bleiben bei heute.
+        val start = at ?: day?.takeIf { it != now.toLocalDate() }?.atTime(9, 0)
+            ?: now.plusHours(1).withMinute(0).withSecond(0).withNano(0)
         editing = EventDraft(
             id = null,
             calendarId = cal.id,
@@ -456,14 +459,14 @@ private fun ChipApp(
                 // Ein Plus je Schnellauswahl-Kalender in dessen Farbe; ohne Auswahl ein einfaches Plus.
                 val quick = quickIds.mapNotNull { id -> calendars.firstOrNull { it.id == id && it.writable } }
                 if (quick.isEmpty()) {
-                    FloatingActionButton(onClick = { newEvent() }) { Text("+", style = MaterialTheme.typography.headlineSmall) }
+                    FloatingActionButton(onClick = { newEvent(day = selectedDay) }) { Text("+", style = MaterialTheme.typography.headlineSmall) }
                 } else {
                     // Nebeneinander, beschriftet mit den ersten drei Buchstaben (Wunsch des Nutzers).
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         quick.forEach { cal ->
                             val bg = Color(cal.color)
                             ExtendedFloatingActionButton(
-                                onClick = { newEvent(calendarId = cal.id) },
+                                onClick = { newEvent(calendarId = cal.id, day = selectedDay) },
                                 containerColor = bg,
                                 contentColor = if (bg.luminance() > 0.5f) Color.Black else Color.White,
                             ) { Text("+ ${cal.name.trim().take(3)}") }

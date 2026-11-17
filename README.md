@@ -22,7 +22,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
   folgt dabei dem Finger und schiebt sich weg. Beim Zoomen skalieren und überblenden die Ansichten live.
 - **Plus-Knöpfe**: nebeneinander, je ein Plus mit den ersten drei Buchstaben für die Schnellauswahl-Kalender (vorbelegt „Langners“ und „Arbeit“, in
   deren Farbe), änderbar unter ⚙ → „Plus-Knöpfe“. Neue Termine über ein Plus beginnen
-  heute zur nächsten vollen Stunde.
+  am gewählten Tag (heute zur nächsten vollen Stunde, an anderen Tagen um 9:00); die Plus-Knöpfe im Widget nehmen heute.
 - **Heute**: Knopf neben dem Titel (Tag/Woche/Monat/Jahr) springt in der aktuellen Ansicht zu heute.
 - **Bearbeiten**: Termine anlegen, ändern, löschen (Titel, Ort, Kalender, ganztägig,
   Beginn/Ende, Notiz). Zur Wahl stehen nur beschreibbare Kalender, die unter ⚙

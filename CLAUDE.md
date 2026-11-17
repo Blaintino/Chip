@@ -66,8 +66,8 @@ Neue Logik genauso aufteilen.
 - Wetter: Ort nur per Namenssuche, **keine Standort-Berechtigung**; **kein Wettersymbol**; Schrift 16 sp; Regen als
   zweite, hellblaue Zeile; Antippen öffnet Chip.
 - Oberfläche ohne Tabs, Startansicht Woche mit 8–18 Uhr sichtbar, „Heute“ mittig, ⚙ rechts.
-- Plus-Knöpfe: zwei Kalender („Langners“, „Arbeit“), nebeneinander, „+ “ und drei Buchstaben, neuer Termin heute
-  zur nächsten vollen Stunde.
+- Plus-Knöpfe: zwei Kalender („Langners“, „Arbeit“), nebeneinander, „+ “ und drei Buchstaben. Neuer Termin in der
+  App am **gewählten Tag** (heute: nächste volle Stunde, sonst 9:00; Wunsch 2026-11-17, v82+), im Widget heute.
 - Editor: nur beschreibbare und eingeschaltete Kalender.
 - Kalenderfarben und Ausblenden nur in Chip, nie am Konto.
 - Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
@@ -196,7 +196,8 @@ Neue Logik genauso aufteilen.
 - Plus-Knöpfe (Wunsch des Nutzers): je Schnellauswahl-Kalender ein `ExtendedFloatingActionButton` in
   Kalenderfarbe (nebeneinander, Beschriftung „+ “ und die ersten drei Buchstaben des Kalendernamens) (`QuickAddCalendars`, 2 Plätze, IDs in SharedPreferences, beim ersten Start nach Namen
   „Langners“/„Arbeit“ vorbelegt, in den Einstellungen änderbar; leer = einfaches Plus). Neuer Termin per
-  Plus: **heute** zur nächsten vollen Stunde (nicht der gewählte Tag); Tippen ins Raster: dort.
+  Plus in der App: am **gewählten Tag** (`selectedDay`; heute = nächste volle Stunde, sonst 9:00 – Wunsch des Nutzers
+  2026-11-17, vorher immer heute); Plus im Widget: heute zur nächsten vollen Stunde; Tippen ins Raster: dort.
 - Lang drücken (Wunsch des Nutzers): Tag/Woche → Zeitwähler unter dem Daumen (Viertelstunden, Ziehen
   auch über die Tage, Haptik, Loslassen öffnet den Editor); kurz tippen weiter = volle Stunde. Beides
   in einer Geste am Raster (`WeekScreen`), damit Tippen und langes Drücken sich nicht doppeln;
@@ -218,7 +219,7 @@ Neue Logik genauso aufteilen.
     nachholen, wenn ein Abo über einen Tag alt ist.
 - **Widget „Heute“** (Glance): ohne Kopfzeile/Datum (Wunsch des Nutzers), Widget durchsichtig mit reinem Schwarz
   nur hinter den Terminen; ohne anstehende Termine nur die Knopfreihe, dann **oben** (Wunsch des Nutzers; kein Hinweistext; ein Widget kann
-  seine Größe nicht selbst ändern). **Nur so hoch wie der Inhalt** (Wunsch des Nutzers, 2026-11-11, v79+): alles
+  seine Größe nicht selbst ändern). **Nur so hoch wie der Inhalt** (Wunsch des Nutzers, 2026-11-11, v80): alles
   steht oben, die schwarze Fläche endet nach dem letzten Termin, die Knöpfe folgen direkt darunter; reicht der Platz
   nicht, scrollt die Liste. Technik: Spalte ohne feste Höhe, Terminfläche mit `defaultWeight` (Höhe 0) – LinearLayout
   misst sie zuerst in Inhaltsgröße und kürzt nur bei Platzmangel (bei `targetSdk` > 23). feste helle Schrift (Wunsch des Nutzers),
@@ -300,15 +301,17 @@ Neue Logik genauso aufteilen.
 
 ## Übergabe-Notizen (Stand 2026-11-11)
 
-- **Letzter Release: v78** (2026-11-11, PR #27: Regenhinweis als zweite Zeile, Stempel-Knopf wird nicht mehr
-  verdrängt). Davor v75 (PR #26, Erinnerungen) und v73 (PR #25, Serientermine), beide 2026-11-09.
+- **Letzter Release: v80** (2026-11-11, PR #28: Widget nur so hoch wie der Inhalt + diese Doku). Davor v78
+  (PR #27: Regenhinweis als zweite Zeile, Stempel-Knopf wird nicht mehr verdrängt) und v75 (PR #26, Erinnerungen) und v73 (PR #25, Serientermine), beide 2026-11-09.
 - **Auf dem Gerät bestätigt** bis v59 sowie der Stempel-Knopf (v61/v63). Der Nutzer hat am 2026-11-11 ein Widget mit
   v75 oder älter gezeigt (Regenzeile verdrängte den Knopf, behoben in v78). **Nicht ausdrücklich bestätigt:** Serien
-  (v73), Erinnerungen (v75), Regenzeile (v78). Der Nutzer wollte keine Prüfliste („ich melde mich, wenn was nicht
+  (v73), Erinnerungen (v75), Regenzeile (v78), Widgethöhe nach Inhalt (v80). Der Nutzer wollte keine Prüfliste („ich melde mich, wenn was nicht
   funktioniert“).
 - **Halbfertig im Code:** nichts. Alle Arbeit ist in `main`.
-- **Branches:** `main` = v78. `claude/vigilant-lamport-2afb5d` = `main` plus diese Doku-Übergabe (PR offen, nicht
-  gemergt). Keine weiteren Branches.
+- **Branches:** `main` = v80. `claude/vigilant-lamport-2afb5d` = `main` plus Doku-Nachträge (`[skip ci]`, ohne PR;
+  gehen mit dem nächsten Release mit). Keine weiteren Branches.
+- **Arbeitsmodus seit 2026-11-11 (Wunsch des Nutzers): Sammeln ohne Programmieren.** Neue Wünsche nur in
+  `TODO.md` aufnehmen (mit Entscheidungen), nichts umsetzen, bis der Nutzer ausdrücklich sagt, dass gebaut wird.
 - **Größte Unsicherheiten** (siehe `TODO.md`):
   - Ob Android/Samsung `EVENT_REMINDER` pünktlich an Chip liefert. Falls nicht, ist der Vorschlag: Chip plant eigene
     Alarme (`setExactAndAllowWhileIdle`, nicht `setAlarmClock` – sonst steht jeder Termin als Wecker in der Statusleiste).
