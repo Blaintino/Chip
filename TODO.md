@@ -20,14 +20,6 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Rele
 4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
    einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
 
-5. [ ] **Plus-Knöpfe in der App („+ Lan“, „+ Arb“) nehmen das gewählte Datum** (Wunsch des Nutzers,
-   2026-11-17): Ein neuer Termin über diese Knöpfe beginnt am in der Ansicht gewählten Tag (`selectedDay`), nicht
-   mehr heute. Ersetzt die bisherige Entscheidung „Plus = heute zur nächsten vollen Stunde“.
-   Noch offen (beim Umsetzen klären, sonst Vorschlag): Uhrzeit – Vorschlag: ist der gewählte Tag heute, die
-   nächste volle Stunde; an anderen Tagen 9:00, wie schon beim langen Drücken in der Monatsansicht.
-   Die Plus-Knöpfe im Widget sind nicht gemeint (dort gibt es keinen gewählten Tag, sie bleiben bei heute).
-   Stelle im Code: `newEvent()` in `MainActivity.kt` (ohne `at` = Plus-Knopf).
-
 ## Nur auf Nachfrage (Ideen, nicht beauftragt)
 
 6. [ ] „Später erinnern“ als Knopf an der Erinnerungs-Benachrichtigung.
@@ -36,6 +28,8 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Rele
 9. [ ] Eigenes App-Icon.
 
 ## Erledigt (mit Entscheidungen des Nutzers)
+
+- [x] Plus-Knöpfe der App nehmen den gewählten Tag (heute: nächste volle Stunde, sonst 9:00); Widget-Plus bleibt bei heute (2026-11-17).
 
 - [x] Knopf „Heute“ mittig zwischen Titel und Zahnrad.
 - [x] Serientermine (v73): täglich, wöchentlich, alle 2 Wochen, monatlich am Datum, am n-ten oder letzten

@@ -66,8 +66,8 @@ Neue Logik genauso aufteilen.
 - Wetter: Ort nur per Namenssuche, **keine Standort-Berechtigung**; **kein Wettersymbol**; Schrift 16 sp; Regen als
   zweite, hellblaue Zeile; Antippen öffnet Chip.
 - Oberfläche ohne Tabs, Startansicht Woche mit 8–18 Uhr sichtbar, „Heute“ mittig, ⚙ rechts.
-- Plus-Knöpfe: zwei Kalender („Langners“, „Arbeit“), nebeneinander, „+ “ und drei Buchstaben, neuer Termin heute
-  zur nächsten vollen Stunde – **wird geändert** (Wunsch 2026-11-17, `TODO.md` Nr. 5): in der App am gewählten Tag.
+- Plus-Knöpfe: zwei Kalender („Langners“, „Arbeit“), nebeneinander, „+ “ und drei Buchstaben. Neuer Termin in der
+  App am **gewählten Tag** (heute: nächste volle Stunde, sonst 9:00; Wunsch 2026-11-17, v82+), im Widget heute.
 - Editor: nur beschreibbare und eingeschaltete Kalender.
 - Kalenderfarben und Ausblenden nur in Chip, nie am Konto.
 - Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
@@ -196,7 +196,8 @@ Neue Logik genauso aufteilen.
 - Plus-Knöpfe (Wunsch des Nutzers): je Schnellauswahl-Kalender ein `ExtendedFloatingActionButton` in
   Kalenderfarbe (nebeneinander, Beschriftung „+ “ und die ersten drei Buchstaben des Kalendernamens) (`QuickAddCalendars`, 2 Plätze, IDs in SharedPreferences, beim ersten Start nach Namen
   „Langners“/„Arbeit“ vorbelegt, in den Einstellungen änderbar; leer = einfaches Plus). Neuer Termin per
-  Plus: **heute** zur nächsten vollen Stunde (nicht der gewählte Tag); Tippen ins Raster: dort.
+  Plus in der App: am **gewählten Tag** (`selectedDay`; heute = nächste volle Stunde, sonst 9:00 – Wunsch des Nutzers
+  2026-11-17, vorher immer heute); Plus im Widget: heute zur nächsten vollen Stunde; Tippen ins Raster: dort.
 - Lang drücken (Wunsch des Nutzers): Tag/Woche → Zeitwähler unter dem Daumen (Viertelstunden, Ziehen
   auch über die Tage, Haptik, Loslassen öffnet den Editor); kurz tippen weiter = volle Stunde. Beides
   in einer Geste am Raster (`WeekScreen`), damit Tippen und langes Drücken sich nicht doppeln;
