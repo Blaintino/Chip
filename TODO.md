@@ -1,7 +1,7 @@
 # Chip – offene Punkte
 
 Sammelliste (Wunsch des Nutzers): Kleinigkeiten ohne eigenen Build werden hier gesammelt und mit dem
-nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-11, letzter Release v80.
+nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Release v80.
 **Gerade Sammelmodus** (Wunsch des Nutzers): neue Wünsche hier eintragen, nicht programmieren.
 
 ## Offen
@@ -20,12 +20,20 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-11, letzter Rele
 4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
    einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
 
+5. [ ] **Plus-Knöpfe in der App („+ Lan“, „+ Arb“) nehmen das gewählte Datum** (Wunsch des Nutzers,
+   2026-11-17): Ein neuer Termin über diese Knöpfe beginnt am in der Ansicht gewählten Tag (`selectedDay`), nicht
+   mehr heute. Ersetzt die bisherige Entscheidung „Plus = heute zur nächsten vollen Stunde“.
+   Noch offen (beim Umsetzen klären, sonst Vorschlag): Uhrzeit – Vorschlag: ist der gewählte Tag heute, die
+   nächste volle Stunde; an anderen Tagen 9:00, wie schon beim langen Drücken in der Monatsansicht.
+   Die Plus-Knöpfe im Widget sind nicht gemeint (dort gibt es keinen gewählten Tag, sie bleiben bei heute).
+   Stelle im Code: `newEvent()` in `MainActivity.kt` (ohne `at` = Plus-Knopf).
+
 ## Nur auf Nachfrage (Ideen, nicht beauftragt)
 
-5. [ ] „Später erinnern“ als Knopf an der Erinnerungs-Benachrichtigung.
-6. [ ] Teilnehmer einladen.
-7. [ ] Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
-8. [ ] Eigenes App-Icon.
+6. [ ] „Später erinnern“ als Knopf an der Erinnerungs-Benachrichtigung.
+7. [ ] Teilnehmer einladen.
+8. [ ] Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
+9. [ ] Eigenes App-Icon.
 
 ## Erledigt (mit Entscheidungen des Nutzers)
 

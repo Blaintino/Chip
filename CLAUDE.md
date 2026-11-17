@@ -67,7 +67,7 @@ Neue Logik genauso aufteilen.
   zweite, hellblaue Zeile; Antippen öffnet Chip.
 - Oberfläche ohne Tabs, Startansicht Woche mit 8–18 Uhr sichtbar, „Heute“ mittig, ⚙ rechts.
 - Plus-Knöpfe: zwei Kalender („Langners“, „Arbeit“), nebeneinander, „+ “ und drei Buchstaben, neuer Termin heute
-  zur nächsten vollen Stunde.
+  zur nächsten vollen Stunde – **wird geändert** (Wunsch 2026-11-17, `TODO.md` Nr. 5): in der App am gewählten Tag.
 - Editor: nur beschreibbare und eingeschaltete Kalender.
 - Kalenderfarben und Ausblenden nur in Chip, nie am Konto.
 - Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
