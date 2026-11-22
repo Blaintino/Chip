@@ -7,8 +7,7 @@ Beobachten/Testen steht hier nicht mehr (Wunsch des Nutzers, 2026-11-22: er meld
 
 ## Offen
 
-4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
-   einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
+Zurzeit nichts (Nutzer, 2026-11-22: alles andere „kann erstmal weg“).
 
 ## Erledigt (mit Entscheidungen des Nutzers)
 
