@@ -10,13 +10,6 @@ Beobachten/Testen steht hier nicht mehr (Wunsch des Nutzers, 2026-11-22: er meld
 4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
    einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
 
-## Nur auf Nachfrage (Ideen, nicht beauftragt)
-
-6. [ ] „Später erinnern“ als Knopf an der Erinnerungs-Benachrichtigung.
-7. [ ] Teilnehmer einladen.
-8. [ ] Widget-Gestaltung (Farben, Schriftgröße, Zeitraum, Kalenderauswahl je Widget).
-9. [ ] Eigenes App-Icon.
-
 ## Erledigt (mit Entscheidungen des Nutzers)
 
 - [x] Plus-Knöpfe der App nehmen den gewählten Tag (heute: nächste volle Stunde, sonst 9:00); Widget-Plus bleibt bei heute (2026-11-17).
