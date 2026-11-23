@@ -38,6 +38,21 @@ enum class CalendarZoom(val label: String) {
         MONTH -> day.plusMonths(steps.toLong())
         YEAR -> day.plusYears(steps.toLong())
     }
+
+    companion object {
+        /**
+         * Tag, der beim Antippen einer Kalenderwoche im Monat gewählt wird (Wunsch des Nutzers): der bisher
+         * gewählte Tag, wenn er in dieser Woche liegt, sonst heute, wenn heute darin liegt, sonst der Montag.
+         */
+        fun dayForWeek(weekStart: java.time.LocalDate, selected: java.time.LocalDate, today: java.time.LocalDate): java.time.LocalDate {
+            val weekEnd = weekStart.plusDays(6)
+            return when {
+                selected in weekStart..weekEnd -> selected
+                today in weekStart..weekEnd -> today
+                else -> weekStart
+            }
+        }
+    }
 }
 
 /** Ab dieser Fingerbewegung (Faktor) ist eine Zwei-Finger-Geste als Aufziehen bzw. Zusammenschieben erkannt. */

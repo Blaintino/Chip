@@ -1,7 +1,7 @@
 # Chip – offene Punkte
 
 Sammelliste (Wunsch des Nutzers): Kleinigkeiten ohne eigenen Build werden hier gesammelt und mit dem
-nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Release v80.
+nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-23, letzter Release v80.
 **Gerade Sammelmodus** (Wunsch des Nutzers): neue Wünsche hier eintragen, nicht programmieren.
 
 ## Offen
@@ -29,6 +29,7 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Rele
 
 ## Erledigt (mit Entscheidungen des Nutzers)
 
+- [x] Kalenderwoche in der Monatsansicht als schmale Spalte links; Antippen öffnet diese Woche (2026-11-23).
 - [x] Plus-Knöpfe der App nehmen den gewählten Tag (heute: nächste volle Stunde, sonst 9:00); Widget-Plus bleibt bei heute (2026-11-17).
 
 - [x] Knopf „Heute“ mittig zwischen Titel und Zahnrad.

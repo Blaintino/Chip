@@ -375,6 +375,10 @@ private fun ChipApp(
                         else d.atTime(9, 0),
                     )
                 },
+                onOpenWeek = { ws ->
+                    selectedDay = CalendarZoom.dayForWeek(ws, selectedDay, LocalDate.now())
+                    zoom = CalendarZoom.WEEK
+                },
             )
             CalendarZoom.YEAR -> YearScreen(
                 repo = repo,
