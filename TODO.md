@@ -1,7 +1,7 @@
 # Chip – offene Punkte
 
 Sammelliste (Wunsch des Nutzers): Kleinigkeiten ohne eigenen Build werden hier gesammelt und mit dem
-nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Release v80.
+nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-23, letzter Release v80.
 **Gerade Sammelmodus** (Wunsch des Nutzers): neue Wünsche hier eintragen, nicht programmieren.
 
 ## Offen
@@ -19,6 +19,10 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-17, letzter Rele
    und beim Öffnen funktioniert.
 4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
    einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
+5. [ ] **Kalenderwoche in der Monatsansicht** (Wunsch des Nutzers, 2026-11-23). Vorschlag: schmale Spalte links
+   vor jeder Wochenzeile mit der ISO-KW (`IsoFields.WEEK_OF_WEEK_BASED_YEAR`, wie schon in der Kopfzeile der
+   Woche), nur die Zahl, klein und grau; die Tageszellen werden dafür etwas schmaler. Antippen der Zahl könnte
+   zur Wochenansicht dieser Woche springen (noch nicht entschieden). Jahresansicht vorerst nicht.
 
 ## Nur auf Nachfrage (Ideen, nicht beauftragt)
 
