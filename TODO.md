@@ -19,6 +19,9 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-23, letzter Rele
    und beim Öffnen funktioniert.
 4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
    einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
+5. [ ] **KW-Spalte im Monat deutlicher abtrennen** (Wunsch des Nutzers, 2026-11-23, nach v84). Vorschlag: dünne
+   senkrechte Linie (1 dp, `outlineVariant`) zwischen KW-Spalte und Tagen, durchgehend über alle Wochenzeilen inkl.
+   Kopfzeile „KW“; Spalte etwas breiter (26 dp), damit die Zahl nicht an der Linie klebt.
 
 ## Nur auf Nachfrage (Ideen, nicht beauftragt)
 
