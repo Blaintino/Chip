@@ -73,7 +73,9 @@ Neue Logik genauso aufteilen.
 - Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
   „+ Quälgeist“ in der Material-You-Hauptfarbe, Stempel-Knopf nur im Kontext.
 - Mehrtägige Termine: Monat dünne Balken direkt unter der Zahl, Jahr Tage voll eingefärbt.
-- Monat: schmale KW-Spalte links (ISO-Woche, klein, grau); Antippen öffnet die Woche (Wunsch 2026-11-23,
+- Monat: schmale KW-Spalte links (ISO-Woche, Zahl hochkant von unten nach oben, „KW“ einmal normal als Kopf, feiner
+  Strich zu den Tagen, laufende Woche fett in der Hauptfarbe; Mockup-Variante F
+  https://claude.ai/artifact/GKkvQaRY93mfacDqZ3CRKi); Antippen öffnet die Woche (Wunsch 2026-11-23,
   gewählter Tag bleibt, wenn er in der Woche liegt, sonst heute, sonst Montag – `CalendarZoom.dayForWeek`).
 - Erinnerungen: höchstens 3 je Termin; Vorgaben in den Einstellungen (ab Werk 1 Tag / 1 Std. / 15 Min.) gelten für
   jeden **neuen** Termin und werden nur im Termin selbst geändert oder gelöscht.
