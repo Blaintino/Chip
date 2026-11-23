@@ -47,6 +47,7 @@ import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 
 private const val CELL_RATIO = 0.85f
@@ -54,6 +55,8 @@ private const val MONTH_SPAN_LANES = 2
 // Balken direkt unter der Tageszahl (Wunsch des Nutzers): Zahl endet bei ~30 dp (2 Rand + 4 oben + 24 Zahl).
 private val SPAN_TOP = 31.dp
 private val SPAN_STEP = 6.dp
+// Schmale Spalte links mit der Kalenderwoche (Wunsch des Nutzers, 2026-11-23).
+private val KW_WIDTH = 22.dp
 private val WEEKDAYS = listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 /** Monatsraster (Woche ab Montag) mit Farbpunkten, darunter die Termine des gewählten Tages. */
@@ -68,6 +71,8 @@ fun MonthScreen(
     onEventClick: (EventInstance) -> Unit,
     /** Langes Drücken auf einen Tag: neuer Termin an diesem Tag (Wunsch des Nutzers). */
     onCreateOn: (LocalDate) -> Unit,
+    /** Antippen der Kalenderwoche: Wochenansicht dieser Woche (Montag wird übergeben). */
+    onOpenWeek: (LocalDate) -> Unit,
 ) {
     val today = LocalDate.now()
     // Der Monat folgt dem gewählten Tag, damit Zoomen (Woche/Jahr) beim selben Datum bleibt.
@@ -105,6 +110,13 @@ fun MonthScreen(
         }
         item {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                Text(
+                    "KW",
+                    modifier = Modifier.width(KW_WIDTH),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
                 WEEKDAYS.forEach {
                     Text(
                         it,
@@ -130,9 +142,25 @@ fun MonthScreen(
                     }
                     val lanes = SpanLayout.lanes(idx)
                     BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val cellW = maxWidth / 7
+                    val cellW = (maxWidth - KW_WIDTH) / 7
                     val cellH = cellW / CELL_RATIO
                     Row(Modifier.fillMaxWidth()) {
+                        Box(
+                            Modifier
+                                .width(KW_WIDTH)
+                                .height(cellH)
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { onOpenWeek(ws) }
+                                .padding(top = 8.dp),
+                            contentAlignment = Alignment.TopCenter,
+                        ) {
+                            Text(
+                                ws.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR).toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        }
                         for (i in 0L until 7L) {
                             // ws (fest je Zeile), nicht weekStart: der Inhalt von BoxWithConstraints läuft erst beim Layout,
                             // dann zeigt die Schleifenvariable schon hinter den Monat (alle Zeilen hießen „1–7“).
@@ -165,7 +193,7 @@ fun MonthScreen(
                                 endRounded = ev.endDay <= we,
                                 showText = false,
                                 modifier = Modifier
-                                    .offset(x = cellW * a + 2.dp, y = SPAN_TOP + SPAN_STEP * lane)
+                                    .offset(x = KW_WIDTH + cellW * a + 2.dp, y = SPAN_TOP + SPAN_STEP * lane)
                                     .width(cellW * (b - a + 1) - 4.dp)
                                     .height(4.dp),
                             )

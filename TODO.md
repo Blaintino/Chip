@@ -19,10 +19,6 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-23, letzter Rele
    und beim Öffnen funktioniert.
 4. [ ] **Geteilte ToDo-/Einkaufsliste**: Der Nutzer hält das eher für eine eigene App. Die Diskussion läuft in
    einer eigenen Session („Geteilte ToDo-/Einkaufsliste – Konzept“); für Chip ist nichts entschieden.
-5. [ ] **Kalenderwoche in der Monatsansicht** (Wunsch des Nutzers, 2026-11-23). Vorschlag: schmale Spalte links
-   vor jeder Wochenzeile mit der ISO-KW (`IsoFields.WEEK_OF_WEEK_BASED_YEAR`, wie schon in der Kopfzeile der
-   Woche), nur die Zahl, klein und grau; die Tageszellen werden dafür etwas schmaler. Antippen der Zahl könnte
-   zur Wochenansicht dieser Woche springen (noch nicht entschieden). Jahresansicht vorerst nicht.
 
 ## Nur auf Nachfrage (Ideen, nicht beauftragt)
 
@@ -33,6 +29,7 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-23, letzter Rele
 
 ## Erledigt (mit Entscheidungen des Nutzers)
 
+- [x] Kalenderwoche in der Monatsansicht als schmale Spalte links; Antippen öffnet diese Woche (2026-11-23).
 - [x] Plus-Knöpfe der App nehmen den gewählten Tag (heute: nächste volle Stunde, sonst 9:00); Widget-Plus bleibt bei heute (2026-11-17).
 
 - [x] Knopf „Heute“ mittig zwischen Titel und Zahnrad.
