@@ -73,7 +73,9 @@ Neue Logik genauso aufteilen.
 - Widget: keine Kopfzeile, Schwarz nur hinter Terminen und nur so hoch wie nötig, nur laufende/kommende Termine, ohne Termine Knöpfe oben,
   „+ Quälgeist“ in der Material-You-Hauptfarbe, Stempel-Knopf nur im Kontext.
 - Mehrtägige Termine: Monat dünne Balken direkt unter der Zahl, Jahr Tage voll eingefärbt.
-- Monat: schmale KW-Spalte links (ISO-Woche, klein, grau); Antippen öffnet die Woche (Wunsch 2026-11-23,
+- Monat: schmale KW-Spalte links (ISO-Woche, Zahl hochkant von unten nach oben, „KW“ einmal normal als Kopf, feiner
+  Strich zu den Tagen, laufende Woche fett in der Hauptfarbe; Mockup-Variante F
+  https://claude.ai/artifact/GKkvQaRY93mfacDqZ3CRKi); Antippen öffnet die Woche (Wunsch 2026-11-23,
   gewählter Tag bleibt, wenn er in der Woche liegt, sonst heute, sonst Montag – `CalendarZoom.dayForWeek`).
 - Erinnerungen: höchstens 3 je Termin; Vorgaben in den Einstellungen (ab Werk 1 Tag / 1 Std. / 15 Min.) gelten für
   jeden **neuen** Termin und werden nur im Termin selbst geändert oder gelöscht.
@@ -301,16 +303,18 @@ Neue Logik genauso aufteilen.
 - Teilnehmer einladen; „Später erinnern“ an der Benachrichtigung.
 - Eigenes App-Icon.
 
-## Übergabe-Notizen (Stand 2026-11-11)
+## Übergabe-Notizen (Stand 2026-11-23)
 
-- **Letzter Release: v80** (2026-11-11, PR #28: Widget nur so hoch wie der Inhalt + diese Doku). Davor v78
+- **Letzter Release: v84** (2026-11-23, PR #30: KW-Spalte im Monat, Antippen öffnet die Woche; enthält auch PR #29:
+  Plus-Knöpfe am gewählten Tag). Davor v80 (2026-11-11, PR #28: Widget nur so hoch wie der Inhalt). Davor v78
   (PR #27: Regenhinweis als zweite Zeile, Stempel-Knopf wird nicht mehr verdrängt) und v75 (PR #26, Erinnerungen) und v73 (PR #25, Serientermine), beide 2026-11-09.
 - **Auf dem Gerät bestätigt** bis v59 sowie der Stempel-Knopf (v61/v63). Der Nutzer hat am 2026-11-11 ein Widget mit
   v75 oder älter gezeigt (Regenzeile verdrängte den Knopf, behoben in v78). **Nicht ausdrücklich bestätigt:** Serien
   (v73), Erinnerungen (v75), Regenzeile (v78), Widgethöhe nach Inhalt (v80). Der Nutzer wollte keine Prüfliste („ich melde mich, wenn was nicht
   funktioniert“).
 - **Halbfertig im Code:** nichts. Alle Arbeit ist in `main`.
-- **Branches:** `main` = v80. `claude/vigilant-lamport-2afb5d` = `main` plus Doku-Nachträge (`[skip ci]`, ohne PR;
+- **Branches:** `main` = v84. Achtung: Das CI startet per Push nur auf `main` und `claude/**`; andere
+  Branchnamen (z. B. `ccr-…`) brauchen einen Start von Hand (`workflow_dispatch`). Früher: `main` = v80, `claude/vigilant-lamport-2afb5d` = `main` plus Doku-Nachträge (`[skip ci]`, ohne PR;
   gehen mit dem nächsten Release mit). Keine weiteren Branches.
 - **Arbeitsmodus seit 2026-11-11 (Wunsch des Nutzers): Sammeln ohne Programmieren.** Neue Wünsche nur in
   `TODO.md` aufnehmen (mit Entscheidungen), nichts umsetzen, bis der Nutzer ausdrücklich sagt, dass gebaut wird.

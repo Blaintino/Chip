@@ -13,7 +13,7 @@ GitHub Releases + [Obtainium](https://obtainium.imranr.dev/). Lizenz: GPL-3.0 (`
 - **Woche** (Startansicht): Mo–So mit Stundenraster, ganztägige Termine oben, Überschneidungen
   nebeneinander, rote Linie für „jetzt“. **Lang drücken** im Raster (Tag/Woche) zeigt einen Zeitwähler
   unter dem Daumen: ziehen wählt Viertelstunde (und in der Woche den Tag), Loslassen öffnet den
-  Editor mit diesem Beginn. In der Monatsansicht öffnet langes Drücken auf einen Tag einen neuen Termin; links steht vor jeder Woche die Kalenderwoche (KW), Antippen öffnet diese Woche. Beim Öffnen füllt 8–18 Uhr die Höhe (Stundenhöhe passt
+  Editor mit diesem Beginn. In der Monatsansicht öffnet langes Drücken auf einen Tag einen neuen Termin; links steht vor jeder Woche hochkant die Kalenderwoche (KW, durch einen feinen Strich abgetrennt, die laufende Woche hervorgehoben), Antippen öffnet diese Woche. Beim Öffnen füllt 8–18 Uhr die Höhe (Stundenhöhe passt
   sich dem Bildschirm an), davor/danach scrollen. Tippen auf eine freie Stelle legt dort einen Termin an.
   **Zoomen mit zwei Fingern:** Aufziehen wechselt eine Stufe feiner, Zusammenschieben eine gröber:
   **Jahr** (12 kleine Monate, Tage mit Terminen markiert) ↔ **Monat** (Raster mit Farbpunkten, darunter

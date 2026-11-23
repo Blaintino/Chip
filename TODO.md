@@ -29,6 +29,7 @@ nächsten Build erledigt; Release nur auf Ansage. Stand 2026-11-23, letzter Rele
 
 ## Erledigt (mit Entscheidungen des Nutzers)
 
+- [x] KW-Spalte: Zahl hochkant, „KW“ als Kopf, feiner Strich, laufende Woche hervorgehoben (Mockup-Variante F, 2026-11-23).
 - [x] Kalenderwoche in der Monatsansicht als schmale Spalte links; Antippen öffnet diese Woche (2026-11-23).
 - [x] Plus-Knöpfe der App nehmen den gewählten Tag (heute: nächste volle Stunde, sonst 9:00); Widget-Plus bleibt bei heute (2026-11-17).
 
